@@ -444,10 +444,10 @@ function registerMine(list){
   });
 }
 const UMAP={kg:[1000,'g'],g:[1,'g'],gram:[1,'g'],l:[10,'dl'],liter:[10,'dl'],dl:[1,'dl'],cl:[0.1,'dl'],ml:[0.01,'dl'],spsk:[1,'spsk'],tsk:[1,'tsk'],'dåse':[1,'dåse'],'dåser':[1,'dåse'],ds:[1,'dåse'],pk:[1,'pk'],pakke:[1,'pk'],pakker:[1,'pk'],'bæger':[1,'bæger'],'bægre':[1,'bæger'],glas:[1,'glas'],bundt:[1,'bundt'],bdt:[1,'bundt'],fed:[1,'fed'],stk:[1,'stk'],stykker:[1,'stk'],stykke:[1,'stk'],knivspids:[1,'knivspids'],'håndfuld':[1,'håndfuld'],skive:[1,'skive'],skiver:[1,'skive']};
-const PANTRY=/^(frisk(kværnet)? )?(salt|peber|vand|(oliven|raps|solsikke|spise)?olie)(\s|,|$)|^salt og peber/;
+const PANTRY=/^(frisk(kværnet)? )?(salt|peber|vand|(oliven|raps|solsikke|spise)?olie)(\s|,|$)|^salt og peber|(^|\s)(salt|peber)(\s|,|$)/;
 function canon(n){
   n=n.toLowerCase().replace(/\([^)]*\)/g,'').split(',')[0].replace(/crème/g,'creme').replace(/fraîche/g,'fraiche').replace(/\d+([.,]\d+)?\s*%/g,'').replace(/^af\s+/,'').replace(/\s+/g,' ').trim();
-  n=n.replace(/^(søde|let|mini|sød)mælk$/,'mælk');
+  n=n.replace(/^(søde|let|mini|sød)mælk$/,'mælk').replace(/\s+i\s+(mundrette\s+|fine\s+|tynde\s+|store\s+|små\s+)?(stykker|tern|skiver|både|strimler|ringe|tern)$/,'');
   const known=Object.keys(CATOF).sort((a,b)=>b.length-a.length);
   for(const k of known){if(new RegExp('(^|\\s)'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|\\s)').test(n))return k;}
   return n;
@@ -517,6 +517,7 @@ function parseOther(doc){
   }
   const body=doc.body;if(!body)return null;
   all(body,'script,style,nav,footer,noscript').forEach(e=>e.remove());
+  all(body,'h3,h4,h5,h6').forEach(e=>e.append(':'));
   all(body,'td,th,dt').forEach(e=>e.append(' '));
   all(body,'br,p,li,div,h1,h2,h3,h4,h5,h6,tr,dd').forEach(e=>e.append('\n'));
   const r=parseRecipeText(body.textContent||'');
