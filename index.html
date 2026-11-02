@@ -549,7 +549,7 @@ async function fetchRecipe(u){
   const tried=[],w=getWorker().trim().replace(/\/+$/,'');
   const tries=[];
   if(/^https:\/\//.test(w))tries.push(['egen tjeneste',x=>w+(w.indexOf('?')<0?'?':'&')+'url='+encodeURIComponent(x)]);
-  tries.push(['direkte',x=>x],['allorigins',x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x)],['codetabs',x=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(x)],['corsproxy',x=>'https://corsproxy.io/?url='+encodeURIComponent(x)]);
+  tries.push(['direkte',x=>x],['allorigins',x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x)],['codetabs',x=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(x)]);
   for(const t of tries){
     try{
       const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
