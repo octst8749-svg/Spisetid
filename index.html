@@ -443,10 +443,11 @@ function registerMine(list){
     }
   });
 }
-const UMAP={kg:[1000,'g'],g:[1,'g'],gram:[1,'g'],l:[10,'dl'],liter:[10,'dl'],dl:[1,'dl'],cl:[0.1,'dl'],ml:[0.01,'dl'],spsk:[1,'spsk'],tsk:[1,'tsk'],'dåse':[1,'dåse'],'dåser':[1,'dåse'],ds:[1,'dåse'],pk:[1,'pk'],pakke:[1,'pk'],pakker:[1,'pk'],'bæger':[1,'bæger'],'bægre':[1,'bæger'],glas:[1,'glas'],bundt:[1,'bundt'],fed:[1,'fed'],stk:[1,'stk'],stykker:[1,'stk'],stykke:[1,'stk'],knivspids:[1,'knivspids'],'håndfuld':[1,'håndfuld'],skive:[1,'skive'],skiver:[1,'skive']};
+const UMAP={kg:[1000,'g'],g:[1,'g'],gram:[1,'g'],l:[10,'dl'],liter:[10,'dl'],dl:[1,'dl'],cl:[0.1,'dl'],ml:[0.01,'dl'],spsk:[1,'spsk'],tsk:[1,'tsk'],'dåse':[1,'dåse'],'dåser':[1,'dåse'],ds:[1,'dåse'],pk:[1,'pk'],pakke:[1,'pk'],pakker:[1,'pk'],'bæger':[1,'bæger'],'bægre':[1,'bæger'],glas:[1,'glas'],bundt:[1,'bundt'],bdt:[1,'bundt'],fed:[1,'fed'],stk:[1,'stk'],stykker:[1,'stk'],stykke:[1,'stk'],knivspids:[1,'knivspids'],'håndfuld':[1,'håndfuld'],skive:[1,'skive'],skiver:[1,'skive']};
 const PANTRY=/^(frisk(kværnet)? )?(salt|peber|vand|(oliven|raps|solsikke|spise)?olie)(\s|,|$)|^salt og peber/;
 function canon(n){
-  n=n.toLowerCase().replace(/\([^)]*\)/g,'').split(',')[0].replace(/^af\s+/,'').replace(/\s+/g,' ').trim();
+  n=n.toLowerCase().replace(/\([^)]*\)/g,'').split(',')[0].replace(/crème/g,'creme').replace(/fraîche/g,'fraiche').replace(/\d+([.,]\d+)?\s*%/g,'').replace(/^af\s+/,'').replace(/\s+/g,' ').trim();
+  n=n.replace(/^(søde|let|mini|sød)mælk$/,'mælk');
   const known=Object.keys(CATOF).sort((a,b)=>b.length-a.length);
   for(const k of known){if(new RegExp('(^|\\s)'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|\\s)').test(n))return k;}
   return n;
@@ -491,7 +492,7 @@ function parseRecipeText(text){
   let b=L.findIndex((x,i)=>i>a&&isSt(x));
   const end=b<0?Math.min(L.length,a+40):b;
   const ing=[];
-  for(let i=a+1;i<end;i++){const x=L[i];if(stop(x))break;if(x.length<=100&&!/^(til\b.*:|for\b.*:)$/i.test(x)||/^\d/.test(x))ing.push(x);}
+  for(let i=a+1;i<end;i++){const x=L[i];if(stop(x))break;if(/:$/.test(x)&&!/\d/.test(x))continue;if(x.length<=100)ing.push(x);}
   const steps=[];
   if(b>=0){for(let i=b+1;i<L.length&&steps.length<20;i++){const x=L[i];if(stop(x))break;if(x.length>12)steps.push(x);}}
   const head=L.slice(0,a).join(' '),y=head.match(/(\d+)\s*(pers|portioner|personer)/i),t=head.match(/(\d+)\s*min/i);
@@ -516,7 +517,8 @@ function parseOther(doc){
   }
   const body=doc.body;if(!body)return null;
   all(body,'script,style,nav,footer,noscript').forEach(e=>e.remove());
-  all(body,'br,p,li,div,h1,h2,h3,h4,h5,h6,tr').forEach(e=>e.append('\n'));
+  all(body,'td,th,dt').forEach(e=>e.append(' '));
+  all(body,'br,p,li,div,h1,h2,h3,h4,h5,h6,tr,dd').forEach(e=>e.append('\n'));
   const r=parseRecipeText(body.textContent||'');
   if(r){const h=doc.querySelector('h1');r.n=h?txt(h):plain((doc.querySelector('title')||{}).textContent||'');}
   return r;
