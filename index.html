@@ -107,6 +107,7 @@ h1,h2,h3,p{margin:0}
 .dmeta{display:block;font-size:13px;color:var(--muted)}
 .ings{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .badge{display:inline-block;font-size:12px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:6px;background:var(--accent-soft);color:var(--accent)}
+.rpre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0 0}
 .needs{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:var(--sun-soft);color:var(--sun-ink);font-size:13px;font-weight:700}
 .chosen{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700}
 .side{display:block;margin-top:5px;font-size:13px;font-weight:700;color:var(--accent)}
@@ -196,6 +197,11 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
+const APP_VERSION='2026-11-02-c';
+const LOGKEY='spisetid-log';
+function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
+window.addEventListener('error',function(e){logErr((e.message||'fejl')+' ('+String(e.filename||'').split('/').pop()+':'+e.lineno+')');});
+window.addEventListener('unhandledrejection',function(e){logErr('løfte: '+((e.reason&&e.reason.message)||e.reason));});
 
 /* ---------- Retter og varer ---------- */
 const DISHES=[
@@ -645,8 +651,28 @@ async function fetchRecipe(u){
   return {rec:null,tried:tried};
 }
 
+
+/* ---------- Fejlrapport ---------- */
+function reportTech(){
+  let sa=false;try{sa=!!(matchMedia('(display-mode: standalone)').matches||navigator.standalone);}catch(e){}
+  let lg=[];try{lg=JSON.parse(localStorage.getItem(LOGKEY)||'[]');}catch(e){}
+  const n=o=>Object.keys(o||{}).length;
+  const l=['Tidspunkt: '+new Date().toISOString(),'App-version: '+APP_VERSION,'Fane: '+S.tab,
+    'Skærm: '+innerWidth+'x'+innerHeight+' (pixelratio '+devicePixelRatio+')','Browser: '+navigator.userAgent,
+    'Hjemmeskærm-app: '+(sa?'ja':'nej'),'Online: '+(navigator.onLine?'ja':'nej'),
+    'Offline-funktion: '+(navigator.serviceWorker&&navigator.serviceWorker.controller?'aktiv':'ikke aktiv'),
+    'Gemt: '+n(S.plan)+' planlagte dage, '+n(S.snacks)+' snackuger, '+S.mine.length+' egne opskrifter, '+S.custom.length+' egne varer, '+n(S.sides)+' tilbehørsvalg, '+n(S.ratings)+' karakterer, '+S.people+' personer',
+    'Lagring: '+(saveOk.ls?'localStorage ok':'localStorage fejlede')+', '+(saveOk.idb?'IndexedDB ok':'IndexedDB ikke bekræftet'),
+    'Seneste fejl i appen: '+(lg.length?'\n'+lg.map(x=>'  '+x.t+' '+x.m).join('\n'):'ingen')];
+  return l.join('\n');
+}
+function reportText(){
+  const t=($('#rpt')||{}).value||'Fejl',d=(($('#rpd')||{}).value||'').trim();
+  return 'Spisetid – '+t.toLowerCase()+'\n\nBeskrivelse:\n'+d+'\n\n--- Tekniske oplysninger ---\n'+reportTech();
+}
+
 /* ---------- Tilstand ---------- */
-const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null};
+const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null,reportSheet:false};
 let db=null,user=null,toastT=0;
 const $=s=>document.querySelector(s);
 const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
@@ -915,7 +941,7 @@ function viewDishes(){
 
 function render(){
   renderTop();
-  $('#main').innerHTML=S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes();
+  $('#main').innerHTML=(S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes())+'<div class="row" style="margin-top:26px"><button class="link" data-a="reportopen">Rapportér en fejl eller send et ønske</button></div>';
   renderTabs();
   if(S.sheet)renderSheetList();
   if(S.snackSheet)renderSnackList();
@@ -924,6 +950,10 @@ function render(){
 /* ---------- Vælg ret (ark) ---------- */
 function renderSheet(){
   const el=$('#sheet');
+  if(S.reportSheet){
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Rapportér en fejl"><header class="phead"><h2>Rapportér en fejl</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Skriv, hvad der skete. Appen lægger selv tekniske oplysninger på. Kopiér rapporten, og send den videre.</p><label class="meta" for="rpt">Hvad vil du melde?</label><select id="rpt" class="search"><option>Fejl</option><option>Ønske</option><option>Andet</option></select><label class="meta" for="rpd">Hvad skete der, og hvad troede du ville ske?</label><textarea id="rpd" class="search" rows="6" style="min-height:130px" placeholder="Fx: Når jeg trykker på Vælg tilbehør, sker der ingenting"></textarea><details style="margin-top:8px"><summary class="meta">Se, hvad der sendes med</summary><pre class="rpre">'+esc(reportTech())+'</pre></details><div class="row"><button class="btn" data-a="reportcopy">Kopiér rapport</button>'+(navigator.share?'<button class="btn ghost" data-a="reportshare">Del rapport</button>':'')+'</div><p class="meta" id="rpm"></p><textarea id="rpo" class="search" rows="8" readonly style="display:none;min-height:160px"></textarea></div></section>';
+    document.body.style.overflow='hidden';return;
+  }
   if(S.planFor){
     const id=S.planFor.id,sn=!!SBY[id],d=sn?SBY[id]:dish(id),w0=S.planFor.week,t=todayKey();
     let body='';
@@ -986,8 +1016,8 @@ function renderSheetList(){
   }
   box.innerHTML=h;
 }
-const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor||S.planFor;
-function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.q='';renderSheet();}
+const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor||S.planFor||S.reportSheet;
+function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.reportSheet=false;S.q='';renderSheet();}
 function renderSnackList(){
   const box=$('#snlist');if(!box||!S.snackSheet)return;
   const sel=S.snacks[dk(S.week)]||{};
@@ -1012,6 +1042,19 @@ function doPick(date,id){
   if(others.length&&sh)toast(sh===1?'1 ingrediens går igen fra de andre retter':sh+' ingredienser går igen fra de andre retter');
 }
 const A={
+  reportopen(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.reportSheet=true;renderSheet();},
+  async reportcopy(){
+    const d=(($('#rpd')||{}).value||'').trim(),m=$('#rpm');
+    if(!d){m.textContent='Skriv først kort, hvad der skete.';return;}
+    const txt=reportText();
+    try{await navigator.clipboard.writeText(txt);m.textContent='Rapporten er kopieret. Indsæt den i en besked, og send den videre.';}
+    catch(e){const o=$('#rpo');o.style.display='block';o.value=txt;o.focus();o.select();m.textContent='Kunne ikke kopiere automatisk. Hold fingeren på teksten nedenfor, og vælg Kopiér.';}
+  },
+  async reportshare(){
+    const d=(($('#rpd')||{}).value||'').trim(),m=$('#rpm');
+    if(!d){m.textContent='Skriv først kort, hvad der skete.';return;}
+    try{await navigator.share({title:'Spisetid – rapport',text:reportText()});}catch(e){}
+  },
   planopen(el){
     const id=el.dataset.dish;
     S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;
