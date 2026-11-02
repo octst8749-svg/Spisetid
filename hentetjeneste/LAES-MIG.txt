@@ -1,0 +1,11 @@
+HENTETJENESTE TIL SPISETID (valgfri, gratis)
+
+Den gør det mere stabilt at hente opskrifter fra et link. Det kræver en gratis konto hos Cloudflare.
+
+1. Opret en konto på dash.cloudflare.com (gratis).
+2. Vælg Workers & Pages -> Create -> Create Worker. Giv den et navn, fx spisetid-hent, og tryk Deploy.
+3. Tryk Edit code. Slet alt, og indsæt indholdet af worker.js. Tryk Deploy.
+4. Kopiér adressen, der ender på .workers.dev.
+5. I Spisetid: Retter -> Tilføj egen opskrift -> åbn "Egen hentetjeneste", og indsæt adressen. Den gemmes på telefonen.
+
+Tjenesten svarer kun til Spisetid på https://octst8749-svg.github.io. Skifter appen adresse, skal linjen TILLADT i worker.js rettes.
