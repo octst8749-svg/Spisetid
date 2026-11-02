@@ -107,7 +107,6 @@ h1,h2,h3,p{margin:0}
 .dmeta{display:block;font-size:13px;color:var(--muted)}
 .ings{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .badge{display:inline-block;font-size:12px;font-weight:800;padding:1px 8px;border-radius:999px;margin-left:6px;background:var(--accent-soft);color:var(--accent)}
-.rpre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0 0}
 .needs{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:var(--sun-soft);color:var(--sun-ink);font-size:13px;font-weight:700}
 .chosen{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:700}
 .side{display:block;margin-top:5px;font-size:13px;font-weight:700;color:var(--accent)}
@@ -197,11 +196,6 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-02-c';
-const LOGKEY='spisetid-log';
-function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
-window.addEventListener('error',function(e){logErr((e.message||'fejl')+' ('+String(e.filename||'').split('/').pop()+':'+e.lineno+')');});
-window.addEventListener('unhandledrejection',function(e){logErr('løfte: '+((e.reason&&e.reason.message)||e.reason));});
 
 /* ---------- Retter og varer ---------- */
 const DISHES=[
@@ -378,7 +372,7 @@ const RECIPES={
 
 const DESC={"spaghetti-koedsovs": "Klassiker med kødsovs, gulerødder og løg, som børn plejer at elske.", "frikadeller": "Hjemmelavede stegte frikadeller med kartofler og sovs.", "tacos": "Børnene fylder selv skallerne med kød, grønt og ost.", "kyllingestrimler": "Sprøde paneret kylling med ovnbagte kartofler.", "pandekager": "Tynde pandekager med banan. Mest en sød ret.", "fiskefrikadeller": "Bløde fiskefrikadeller med remoulade og kartofler.", "pasta-kylling": "Cremet pasta med kylling og broccoli.", "tortillapizza": "Tynd pizza på tortilla med tomat, ost og skinke.", "pastasalat": "Kold pastasalat med skinke og grønt. God til madpakken.", "boller-karry": "Bløde boller i mild karrysovs med ris.", "cheeseburger": "Burger med ost, tomat og salat og sprøde pommes frites.", "hotdogs": "Hotdogs med ristede løg og remoulade. Hyggemad.", "omelet": "Luftig omelet med skinke, peberfrugt og ost.", "gulerodssuppe": "Blød og sød suppe med gulerødder og kartofler.", "ovnlaks": "Bagt laks med kartofler og broccoli.", "kyllingelaar": "Ovnbagte kyllingelår med kartofler og gulerødder i samme fad.", "lasagne": "Lasagne med kødsovs og ostesovs. Hyggemad.", "wok-kylling": "Hurtig wok med kylling, nudler og mange grøntsager.", "tomatsuppe": "Mild tomatsuppe med ostetoast.", "poelser-mos": "Pølser med kartoffelmos og ærter.", "aeggekage": "Æggekage med sprød bacon og tomat.", "koedboller-tomat": "Kødboller i tomatsovs med pasta.", "quesadillas": "Sprøde tortillaer fyldt med kylling, ost og majs.", "ovnpasta": "Pasta bagt i ovnen med skinke, tomat og ost.", "smoerrebroed": "Rugbrød med æg, leverpostej, skinke og grønt. Børnene vælger selv.", "kyllingesuppe": "Let suppe med kylling, gulerødder og nudler.", "fiskefilet": "Stegt fiskefilet med kartofler, ærter og remoulade.", "wraps": "Kylling, salat og creme fraiche i en rullet tortilla.", "bagt-kartoffel": "Bagte kartofler fyldt med creme fraiche, skinke og ost.", "risotto-kylling": "Ris med kylling, ærter og fløde.", "pasta-pesto": "Pasta med pesto og tomater. Hurtig og vegetarisk.", "ovnmakaroni": "Makaroni med ostesovs bagt i ovnen. Børnefavorit.", "kyllingespyd": "Kylling og grønt på spyd med ris.", "fiskeburger": "Burger med fiskefilet, remoulade og salat.", "ovntorsk": "Bagt torsk med kartofler og gulerødder.", "tunpasta": "Pasta med tun, majs og creme fraiche.", "chili": "Mild chili con carne med bønner og majs. Kan koges i stor portion.", "pitabroed": "Pitabrød fyldt med kylling og masser af salat.", "poelsegryde": "Pølser i tomatsovs med ris.", "kartoffelsuppe": "Tyk kartoffelsuppe med porre, gulerødder og pølsestykker.", "hakkeboef": "Hakkebøf med bløde løg, kartofler og ærter.", "floedekartofler": "Lækre kartofler bagt i fløde med bacon. Mest tilbehør.", "kyllingeburger": "Paneret kyllingebryst i burgerbolle med salat.", "pizzatoast": "Toast med tomat, skinke og ost fra ovnen.", "roeraeg": "Cremede røræg med bacon og toast.", "havregroed": "Varm havregrød med banan og æble. Mest morgenmad.", "kartoffelpandekager": "Sprøde pandekager af revne kartofler med bacon.", "groentsagsfrikadeller": "Frikadeller af gulerødder og squash. Vegetarisk.", "carbonara": "Cremet pasta med bacon, æg og ost. Hyggemad.", "kyllingegryde": "Kylling med ris i mild cremet sovs med gulerødder og ærter.", "kokoskarry": "Mild karry med kokosmælk og ris.", "fiskestaenger": "Hjemmelavede fiskestænger i rasp med kartofler og ærter.", "pasta-skinke-aerter": "Hurtig pasta med skinke, ærter og fløde.", "skjult-groent": "Tomatsovs med gulerod og squash, der er blendet ud, så børnene ikke ser det.", "nudelsalat": "Kold nudelsalat med kylling og masser af grønt.", "mexicansk-ris": "Ris med oksekød, majs og tomat. Alt i én gryde.", "enchiladas": "Rullede tortillaer med kød og ost bagt i ovnen.", "fyldt-peberfrugt": "Peberfrugter bagt med kød, ris og ost.", "ovn-poelser": "Pølser, kartofler og grønt bagt sammen i ét fad.", "aeggesalat": "Æggesalat på rugbrød med agurk og tomat.", "stegt-flaesk": "Dansk klassiker: sprødt flæsk med kartofler og persillesovs.", "millionboef": "Dansk bøf i tomatsovs med kartoffelmos.", "medister": "Medisterpølse med kartoffelmos og kogte gulerødder.", "biksemad": "Stegte kartofler og pølser med et spejlæg ovenpå.", "braendende-kaerlighed": "Kartoffelmos med bacon og løg. Dansk hyggemad.", "tarteletter": "Tarteletter med kylling i cremet aspargessovs.", "helstegt-kylling": "Hel kylling fra ovnen med kartofler og gulerødder.", "roedspaette": "Paneret rødspætte med remoulade og kartofler. Dansk klassiker.", "hoensesuppe": "Klar suppe med kylling, grønt og melboller.", "flaeskesteg": "Flæskesteg med sprød svær, kartofler og rødkål. Mest til weekenden."};
 const SIDE={"spaghetti-koedsovs": "agurk eller revne gulerødder", "frikadeller": "ovnbagte gulerødder eller en grøn salat", "tacos": "flere grøntsager i skaller: agurk, tomat og majs", "kyllingestrimler": "agurkestave og tomatbåde", "pandekager": "skyr eller yoghurt med bær", "fiskefrikadeller": "ovnbagte gulerødder eller agurk", "pasta-kylling": "friske tomater", "tortillapizza": "grøn salat og peberfrugtstave", "pastasalat": "flere grøntsager ved siden af, fx gulerodsstave", "boller-karry": "ærter og agurkestave", "cheeseburger": "ovnbagte søde kartofler i stedet for pommes frites, og masser af salat", "hotdogs": "agurk og gulerodsstave", "omelet": "tomater", "gulerodssuppe": "grøn salat og et groft brød", "ovnlaks": "tomat eller agurk", "kyllingelaar": "broccoli eller en grøn salat", "lasagne": "stor grøn salat med agurk og tomat", "wok-kylling": "mere grønt: snackgulerødder eller agurk", "tomatsuppe": "grøntsagsstave og en lille kogt æg", "poelser-mos": "gulerodsstave eller agurk", "aeggekage": "grøn salat og agurk", "koedboller-tomat": "grøn salat eller gulerodsstave", "quesadillas": "salat med agurk og tomat", "ovnpasta": "grøn salat eller agurkestave", "smoerrebroed": "masser af agurk, tomat og radiser", "kyllingesuppe": "brød med kornblanding og en lille salat", "fiskefilet": "agurk", "wraps": "snackgrønt: agurk, peberfrugt og gulerod", "bagt-kartoffel": "grøn salat og majs", "risotto-kylling": "agurk eller tomat", "pasta-pesto": "grøn salat", "ovnmakaroni": "broccoli og tomater", "kyllingespyd": "agurk og peberfrugtstave", "fiskeburger": "agurk og gulerodsstave", "ovntorsk": "grøn salat med citron", "tunpasta": "agurk og tomat", "chili": "salat og agurkestave", "pitabroed": "skær ekstra agurk og tomat", "poelsegryde": "agurkestave og gulerødder", "kartoffelsuppe": "grøn salat", "hakkeboef": "tomat eller agurk", "floedekartofler": "grøn salat og broccoli", "kyllingeburger": "agurk og gulerodsstave", "pizzatoast": "grøn salat og peberfrugtstave", "roeraeg": "tomater og agurk", "havregroed": "et glas mælk", "kartoffelpandekager": "agurk", "groentsagsfrikadeller": "tomater og creme fraiche-dip", "carbonara": "stor grøn salat", "kyllingegryde": "agurkestave", "kokoskarry": "agurk og gulerødder", "fiskestaenger": "agurk- og gulerodsstave", "pasta-skinke-aerter": "tomater og agurk", "skjult-groent": "agurkestave og frugt til dessert", "nudelsalat": "ekstra agurk", "mexicansk-ris": "tomater og agurk", "enchiladas": "stor salat med agurk og tomat", "fyldt-peberfrugt": "grøn salat", "ovn-poelser": "agurk", "aeggesalat": "gulerodsstave og frugt", "stegt-flaesk": "gulerødder eller broccoli", "millionboef": "agurk og gulerodsstave", "medister": "broccoli eller en grøn salat", "biksemad": "agurk og tomater", "braendende-kaerlighed": "gulerodsstave og agurk", "tarteletter": "en stor grøn salat", "helstegt-kylling": "broccoli eller en grøn salat", "roedspaette": "agurk og citron", "hoensesuppe": "grøn salat", "flaeskesteg": "grøn salat eller ovnbagte gulerødder"};
-const NEEDS={"pandekager": "bacon eller skinke, hvis det skal mætte som aftensmad", "pasta-pesto": "stegt kylling, skinketern eller kogte æg", "ovnmakaroni": "pølser, skinke eller kyllingestykker", "floedekartofler": "hakkebøf, kyllingelår eller stegte pølser", "havregroed": "et kogt æg eller skinke, hvis det skal være aftensmad", "braendende-kaerlighed": "stegte pølser, frikadeller eller hakkebøf"};
+const NEEDS={"pandekager": "bacon eller skinke, hvis det skal mætte som aftensmad", "pasta-pesto": "stegt kylling, skinketern eller kogte æg", "ovnmakaroni": "pølser, skinke eller kyllingestykker", "floedekartofler": "hakkebøf, kyllingelår eller stegte pølser", "havregroed": "et kogt æg eller skinke, hvis det skal være aftensmad"};
 const shortN=n=>n.replace(/\s*\(.*\)/,'');
 const chosenHtml=d=>(S.sides[d.id]&&S.sides[d.id].length?'<span class="chosen">Valgt tilbehør: '+S.sides[d.id].map(shortN).join(', ')+'</span>':'');
 const infoHtml=(d,noChosen)=>(DESC[d.id]?'<span class="dmeta">'+DESC[d.id]+'</span>':'')+(NEEDS[d.id]?'<span class="needs">Mangler kød eller fisk: server med '+NEEDS[d.id]+'</span>':'')+(SIDE[d.id]?'<span class="side">Sundt tilbehør: '+SIDE[d.id]+'</span>':'')+(noChosen?'':chosenHtml(d));
@@ -651,28 +645,8 @@ async function fetchRecipe(u){
   return {rec:null,tried:tried};
 }
 
-
-/* ---------- Fejlrapport ---------- */
-function reportTech(){
-  let sa=false;try{sa=!!(matchMedia('(display-mode: standalone)').matches||navigator.standalone);}catch(e){}
-  let lg=[];try{lg=JSON.parse(localStorage.getItem(LOGKEY)||'[]');}catch(e){}
-  const n=o=>Object.keys(o||{}).length;
-  const l=['Tidspunkt: '+new Date().toISOString(),'App-version: '+APP_VERSION,'Fane: '+S.tab,
-    'Skærm: '+innerWidth+'x'+innerHeight+' (pixelratio '+devicePixelRatio+')','Browser: '+navigator.userAgent,
-    'Hjemmeskærm-app: '+(sa?'ja':'nej'),'Online: '+(navigator.onLine?'ja':'nej'),
-    'Offline-funktion: '+(navigator.serviceWorker&&navigator.serviceWorker.controller?'aktiv':'ikke aktiv'),
-    'Gemt: '+n(S.plan)+' planlagte dage, '+n(S.snacks)+' snackuger, '+S.mine.length+' egne opskrifter, '+S.custom.length+' egne varer, '+n(S.sides)+' tilbehørsvalg, '+n(S.ratings)+' karakterer, '+S.people+' personer',
-    'Lagring: '+(saveOk.ls?'localStorage ok':'localStorage fejlede')+', '+(saveOk.idb?'IndexedDB ok':'IndexedDB ikke bekræftet'),
-    'Seneste fejl i appen: '+(lg.length?'\n'+lg.map(x=>'  '+x.t+' '+x.m).join('\n'):'ingen')];
-  return l.join('\n');
-}
-function reportText(){
-  const t=($('#rpt')||{}).value||'Fejl',d=(($('#rpd')||{}).value||'').trim();
-  return 'Spisetid – '+t.toLowerCase()+'\n\nBeskrivelse:\n'+d+'\n\n--- Tekniske oplysninger ---\n'+reportTech();
-}
-
 /* ---------- Tilstand ---------- */
-const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null,reportSheet:false};
+const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null};
 let db=null,user=null,toastT=0;
 const $=s=>document.querySelector(s);
 const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
@@ -941,7 +915,7 @@ function viewDishes(){
 
 function render(){
   renderTop();
-  $('#main').innerHTML=(S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes())+'<div class="row" style="margin-top:26px"><button class="link" data-a="reportopen">Rapportér en fejl eller send et ønske</button></div>';
+  $('#main').innerHTML=S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes();
   renderTabs();
   if(S.sheet)renderSheetList();
   if(S.snackSheet)renderSnackList();
@@ -950,10 +924,6 @@ function render(){
 /* ---------- Vælg ret (ark) ---------- */
 function renderSheet(){
   const el=$('#sheet');
-  if(S.reportSheet){
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Rapportér en fejl"><header class="phead"><h2>Rapportér en fejl</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Skriv, hvad der skete. Appen lægger selv tekniske oplysninger på. Kopiér rapporten, og send den videre.</p><label class="meta" for="rpt">Hvad vil du melde?</label><select id="rpt" class="search"><option>Fejl</option><option>Ønske</option><option>Andet</option></select><label class="meta" for="rpd">Hvad skete der, og hvad troede du ville ske?</label><textarea id="rpd" class="search" rows="6" style="min-height:130px" placeholder="Fx: Når jeg trykker på Vælg tilbehør, sker der ingenting"></textarea><details style="margin-top:8px"><summary class="meta">Se, hvad der sendes med</summary><pre class="rpre">'+esc(reportTech())+'</pre></details><div class="row"><button class="btn" data-a="reportcopy">Kopiér rapport</button>'+(navigator.share?'<button class="btn ghost" data-a="reportshare">Del rapport</button>':'')+'</div><p class="meta" id="rpm"></p><textarea id="rpo" class="search" rows="8" readonly style="display:none;min-height:160px"></textarea></div></section>';
-    document.body.style.overflow='hidden';return;
-  }
   if(S.planFor){
     const id=S.planFor.id,sn=!!SBY[id],d=sn?SBY[id]:dish(id),w0=S.planFor.week,t=todayKey();
     let body='';
@@ -1016,8 +986,8 @@ function renderSheetList(){
   }
   box.innerHTML=h;
 }
-const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor||S.planFor||S.reportSheet;
-function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.reportSheet=false;S.q='';renderSheet();}
+const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor||S.planFor;
+function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.q='';renderSheet();}
 function renderSnackList(){
   const box=$('#snlist');if(!box||!S.snackSheet)return;
   const sel=S.snacks[dk(S.week)]||{};
@@ -1042,19 +1012,6 @@ function doPick(date,id){
   if(others.length&&sh)toast(sh===1?'1 ingrediens går igen fra de andre retter':sh+' ingredienser går igen fra de andre retter');
 }
 const A={
-  reportopen(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.reportSheet=true;renderSheet();},
-  async reportcopy(){
-    const d=(($('#rpd')||{}).value||'').trim(),m=$('#rpm');
-    if(!d){m.textContent='Skriv først kort, hvad der skete.';return;}
-    const txt=reportText();
-    try{await navigator.clipboard.writeText(txt);m.textContent='Rapporten er kopieret. Indsæt den i en besked, og send den videre.';}
-    catch(e){const o=$('#rpo');o.style.display='block';o.value=txt;o.focus();o.select();m.textContent='Kunne ikke kopiere automatisk. Hold fingeren på teksten nedenfor, og vælg Kopiér.';}
-  },
-  async reportshare(){
-    const d=(($('#rpd')||{}).value||'').trim(),m=$('#rpm');
-    if(!d){m.textContent='Skriv først kort, hvad der skete.';return;}
-    try{await navigator.share({title:'Spisetid – rapport',text:reportText()});}catch(e){}
-  },
   planopen(el){
     const id=el.dataset.dish;
     S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;
