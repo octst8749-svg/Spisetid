@@ -375,7 +375,7 @@ const SIDE={"spaghetti-koedsovs": "agurkesalat eller revne gulerødder", "frikad
 const NEEDS={"pandekager": "bacon eller skinke, hvis det skal mætte som aftensmad", "pasta-pesto": "stegt kylling, skinketern eller kogte æg", "ovnmakaroni": "pølser, skinke eller kyllingestykker", "floedekartofler": "hakkebøf, kyllingelår eller stegte pølser", "havregroed": "et kogt æg eller skinke, hvis det skal være aftensmad", "braendende-kaerlighed": "stegte pølser, frikadeller eller hakkebøf"};
 const shortN=n=>n.replace(/\s*\(.*\)/,'');
 const chosenHtml=d=>(S.sides[d.id]&&S.sides[d.id].length?'<span class="chosen">Valgt tilbehør: '+S.sides[d.id].map(shortN).join(', ')+'</span>':'');
-const infoHtml=d=>(DESC[d.id]?'<span class="dmeta">'+DESC[d.id]+'</span>':'')+(NEEDS[d.id]?'<span class="needs">Mangler kød eller fisk: server med '+NEEDS[d.id]+'</span>':'')+(SIDE[d.id]?'<span class="side">Sundt tilbehør: '+SIDE[d.id]+'</span>':'')+chosenHtml(d);
+const infoHtml=(d,noChosen)=>(DESC[d.id]?'<span class="dmeta">'+DESC[d.id]+'</span>':'')+(NEEDS[d.id]?'<span class="needs">Mangler kød eller fisk: server med '+NEEDS[d.id]+'</span>':'')+(SIDE[d.id]?'<span class="side">Sundt tilbehør: '+SIDE[d.id]+'</span>':'')+(noChosen?'':chosenHtml(d));
 
 /* Tilbehør til indkøbslisten: læser forslagsteksten og finder varer, der kan købes */
 const SIDEMAP=[
@@ -399,6 +399,37 @@ function sideItems(id){
   run(NEEDS[id],MEATMAP,'kød');run(SIDE[id],SIDEMAP,'tilbehør');
   return out;
 }
+
+/* Korte trin til tilbehør og kød, så de står i selve opskriften */
+const SIDESTEP={
+ 'tilbehør:Agurk':'Skær agurken i stave eller tern, og server den rå.',
+ 'tilbehør:Tomater':'Skær tomaterne i både eller halve, og server dem rå.',
+ 'tilbehør:Gulerødder':'Skræl gulerødderne, og skær dem i stave. Server dem rå, eller bag dem i ovnen ved 200 grader i 20 minutter med lidt olie og salt.',
+ 'tilbehør:Broccoli':'Skær broccolien i små buketter, og kog dem i letsaltet vand i 4 minutter. Hæld vandet fra.',
+ 'tilbehør:Peberfrugt':'Skær peberfrugten i stave, og server den rå.',
+ 'tilbehør:Majs':'Hæld vandet fra majsen, og server den kold eller varmet op.',
+ 'tilbehør:Ærter (frost)':'Kog ærterne i letsaltet vand i 3 minutter, og hæld vandet fra.',
+ 'tilbehør:Radiser':'Skyl radiserne, og skær dem i tynde skiver.',
+ 'tilbehør:Grøn salat':'Skyl salaten, og riv den i mundrette stykker. Rør evt. lidt olie og citronsaft til.',
+ 'tilbehør:Citron':'Skær citronen i både, så saften kan presses over.',
+ 'tilbehør:Yoghurt naturel':'Server yoghurten i en skål, evt. med frugt eller bær.',
+ 'tilbehør:Bær (friske eller frosne)':'Skyl bærrene, og server dem i en skål. Frosne bær tøs op først.',
+ 'tilbehør:Frugt (æbler og bananer)':'Skær frugten i både eller skiver, og server den i en skål.',
+ 'tilbehør:Søde kartofler':'Skræl søde kartofler, og skær dem i både. Vend dem i olie og salt, og bag dem ved 200 grader i ca. 25 minutter.',
+ 'tilbehør:Groft brød':'Skær brødet i skiver, og server det ved siden af.',
+ 'tilbehør:Creme fraiche':'Rør creme fraichen op med lidt salt, peber og citronsaft til en dip.',
+ 'tilbehør:Æg':'Kog æggene i 8 minutter, og køl dem af i koldt vand. Pil dem, og skær dem i både.',
+ 'tilbehør:Mælk':'Skænk et glas mælk til hver.',
+ 'kød:Hakkebøf (hakket oksekød)':'Form hakket oksekød til 4 flade bøffer, og krydr med salt og peber. Steg dem i smør på panden i ca. 4 minutter på hver side, til de er gennemstegte.',
+ 'kød:Kyllingelår':'Krydr kyllingelårene med salt og peber, og bag dem i ovnen ved 200 grader i 35–40 minutter, til saften er klar. En voksen tjekker, at de er gennemstegte.',
+ 'kød:Pølser':'Steg pølserne på panden i ca. 8 minutter, til de er gyldne hele vejen rundt.',
+ 'kød:Kyllingebryst':'Skær kyllingen i strimler, krydr med salt og peber, og steg den i 6–8 minutter, til den er gennemstegt.',
+ 'kød:Skinke':'Skær skinken i skiver eller tern, og server den ved siden af.',
+ 'kød:Bacon':'Steg baconen sprød på en tør pande, og læg den på køkkenrulle.',
+ 'kød:Æg':'Kog æggene i 8 minutter, eller steg dem som spejlæg. Pil de kogte æg, og skær dem i både.',
+ 'kød:Hakket svinekød':'Ælt farsen med salt og peber, form frikadeller, og steg dem ved middel varme i 8–10 minutter, til de er gennemstegte.'
+};
+function chosenItems(id){const c=S.sides[id];return c&&c.length?sideItems(id).filter(it=>c.indexOf(it.n)>=0):[];}
 /* ---------- Ugens snacks og bagværk (ikke en del af madplanen) ---------- */
 const SNACKS=[
  {id:'s-polsehorn',n:'Pølsehorn',e:'🌭',m:60,y:12,u:'stk',h:1,ing:[['mel',400,'g'],['mælk',2.5,'dl'],['gær',1,'pk'],['pølser',1,'pk'],['æg',1,'stk']],k:"rulle pølserne ind i dejen",s:["Varm mælken, så den er lun (ca. 37 grader). Rør gæren ud i mælken.","Tilsæt mel og en knivspids salt, og ælt dejen smidig i ca. 8 minutter. Lad den hæve tildækket i 30–40 minutter, til den er dobbelt så stor.","Tænd ovnen på 200 grader. Rul dejen ud til en stor rund plade, og skær den i 12 trekanter.","Skær pølserne i halve. Læg en halv pølse på den brede ende af hver trekant, og rul sammen mod spidsen.","Læg hornene på en bageplade med bagepapir, lad dem hæve i 15 minutter, og pensl dem med pisket æg.","Bag i 12–15 minutter, til de er gyldne."]},
@@ -878,7 +909,7 @@ function renderSheet(){
   }
   if(S.rec){
     const d=dish(S.rec)||SBY[S.rec],r=RECIPES[S.rec]||{s:[],k:''};
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p>'+infoHtml(d)+(sideItems(d.id).length?'<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="sideopen" data-dish="'+d.id+'">Vælg tilbehør</button></div>':'')+'<h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[0])+'</span><span class="qty">'+fmtRecipeQty(i[1]*S.people/4,i[2])+'</span></li>').join('')+'</ul><h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+(r.src&&/^https?:\/\//.test(r.src)?'<p class="meta"><a href="'+esc(r.src)+'" target="_blank" rel="noopener noreferrer">Se opskriften på den oprindelige side</a></p>':'')+'</div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p>'+infoHtml(d,true)+(sideItems(d.id).length?'<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="sideopen" data-dish="'+d.id+'">Vælg tilbehør</button></div>':'')+'<h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[0])+'</span><span class="qty">'+fmtRecipeQty(i[1]*S.people/4,i[2])+'</span></li>').join('')+'</ul>'+(chosenItems(d.id).length?'<h3 class="rh">Til tilbehøret</h3><ul class="ingl">'+chosenItems(d.id).map(it=>'<li><span>'+it.n+'</span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></li>').join('')+'</ul>':'')+'<h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(chosenItems(d.id).length?'<h3 class="rh">Tilbehør</h3><ol class="steps">'+chosenItems(d.id).map(it=>'<li><b>'+shortN(it.n)+':</b> '+(SIDESTEP[it.kind+':'+it.n]||'')+'</li>').join('')+'</ol>':'')+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+(r.src&&/^https?:\/\//.test(r.src)?'<p class="meta"><a href="'+esc(r.src)+'" target="_blank" rel="noopener noreferrer">Se opskriften på den oprindelige side</a></p>':'')+'</div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(!S.sheet){el.innerHTML='';document.body.style.overflow='';return;}
