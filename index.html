@@ -632,7 +632,7 @@ async function fetchRecipe(u){
 }
 
 /* ---------- Tilstand ---------- */
-const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{}};
+const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null};
 let db=null,user=null,toastT=0;
 const $=s=>document.querySelector(s);
 const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
@@ -848,6 +848,7 @@ function snackEntries(){
   Object.keys(S.snacks).sort().forEach(w=>{if(w>=cur)Object.keys(S.snacks[w]).forEach(id=>{if(SBY[id])out.push(SBY[id]);});});
   return out;
 }
+function weekRangeTxt(w0){const w6=addDays(w0,6);return w0.getMonth()===w6.getMonth()?w0.getDate()+'.–'+w6.getDate()+'. '+MON[w6.getMonth()]:w0.getDate()+'. '+MON[w0.getMonth()]+'–'+w6.getDate()+'. '+MON[w6.getMonth()];}
 function weekNavHtml(){
   const w0=S.week,w6=addDays(w0,6);
   const range=w0.getMonth()===w6.getMonth()?w0.getDate()+'.–'+w6.getDate()+'. '+MON[w6.getMonth()]:w0.getDate()+'. '+MON[w0.getMonth()]+'–'+w6.getDate()+'. '+MON[w6.getMonth()];
@@ -886,7 +887,7 @@ function viewDishes(){
   if(!list.length)return h+'<p class="empty">Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.</p>';
   list.forEach(d=>{
     const r=ratingInfo(d.id);
-    h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(d.mine?'<span class="badge" style="background:var(--sun-soft);color:var(--sun-ink)">Egen</span>':'')+'</span>'+facts(d)+''+infoHtml(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button>';
+    h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(d.mine?'<span class="badge" style="background:var(--sun-soft);color:var(--sun-ink)">Egen</span>':'')+'</span>'+facts(d)+''+infoHtml(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<div class="row" style="margin-top:6px"><button class="btn" data-a="planopen" data-dish="'+d.id+'">'+(S.kind==='snacks'?'Føj til ugens snacks':'Føj til madplan')+'</button></div><button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button>';
     if(d.mine){
       if(S.confirmMine===d.id)h+='<div class="confirm" role="alert"><span>Slet '+d.n+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="mineyes" data-id="'+d.id+'">Ja, slet</button><button class="btn ghost" data-a="mineno">Behold</button></span></div>';
       else h+='<button class="link" data-a="minedel" data-id="'+d.id+'" style="display:block;padding-left:0">Slet opskrift</button>';
@@ -907,6 +908,21 @@ function render(){
 /* ---------- Vælg ret (ark) ---------- */
 function renderSheet(){
   const el=$('#sheet');
+  if(S.planFor){
+    const id=S.planFor.id,sn=!!SBY[id],d=sn?SBY[id]:dish(id),w0=S.planFor.week,t=todayKey();
+    let body='';
+    if(sn){
+      const on=!!(S.snacks[dk(w0)]||{})[id];
+      body='<p class="meta">Snacks hører til en uge og ikke en bestemt dag.</p><button class="btn'+(on?' ghost':'')+'" data-a="planweekyes"'+(on?' disabled':'')+' style="margin-top:8px">'+(on?'Allerede valgt til uge '+isoWeek(w0):'Føj til uge '+isoWeek(w0))+'</button>';
+    }else{
+      body='<p class="meta">Vælg den dag, retten skal laves.</p>'+[0,1,2,3,4,5,6].map(i=>{
+        const dt=addDays(w0,i),k=dk(dt),p=S.plan[k],cur=p&&p.dishId?dish(p.dishId):null,past=k<t;
+        return '<button class="drow" data-a="planday" data-date="'+k+'"'+(past?' disabled style="opacity:.4"':'')+'><span class="dmain"><span class="dname">'+cap(longDate(k))+(k===t?'<span class="badge">I dag</span>':'')+'</span><span class="dmeta">'+(past?'Dagen er gået':cur?'Har allerede '+cur.n+'. Tryk for at skifte':p?'Dag uden ret endnu':'Ikke i madplanen endnu')+'</span></span></button>';
+      }).join('');
+    }
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Føj til madplan"><header class="phead"><h2>'+(sn?'Føj til ugens snacks':'Føj til madplan')+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="dname" style="margin:0 0 6px">'+d.n+'</p><div class="weeknav"><button class="rbtn" data-a="planweek" data-d="-1" aria-label="Forrige uge">‹</button><h2>Uge '+isoWeek(w0)+'<small>'+weekRangeTxt(w0)+'</small></h2><button class="rbtn" data-a="planweek" data-d="1" aria-label="Næste uge">›</button></div>'+body+'</div></section>';
+    document.body.style.overflow='hidden';return;
+  }
   if(S.sideFor){
     const dd=dish(S.sideFor);
     el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilbehør til indkøbslisten"><header class="phead"><h2>Vælg tilbehør</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Til '+(dd?dd.n:'')+'. Tryk på det, I vil have: ét kød eller fisk og de grøntsager, I vil have. Valget kommer på indkøbslisten og står i opskriften. Mængderne passer til '+S.people+' personer.</p>'+S.sideItems.map((it,i)=>{const on=!!S.sideSel[i];return '<button class="drow'+(on?' picked':'')+'" data-a="sidetoggle" data-i="'+i+'" aria-pressed="'+on+'"><span class="cb" aria-hidden="true">'+(on?'✓':'')+'</span><span class="dmain"><span class="iname">'+it.n+'</span><span class="icap">'+(it.kind==='kød'?'Vælg ét kød eller fisk':'Sundt tilbehør')+'</span></span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></button>';}).join('')+'<button class="btn" data-a="sideadd" style="margin-top:10px">Gem tilbehør</button></div></section>';
@@ -954,8 +970,8 @@ function renderSheetList(){
   }
   box.innerHTML=h;
 }
-const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor;
-function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.q='';renderSheet();}
+const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet||S.sideFor||S.planFor;
+function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;S.planFor=null;S.q='';renderSheet();}
 function renderSnackList(){
   const box=$('#snlist');if(!box||!S.snackSheet)return;
   const sel=S.snacks[dk(S.week)]||{};
@@ -980,6 +996,26 @@ function doPick(date,id){
   if(others.length&&sh)toast(sh===1?'1 ingrediens går igen fra de andre retter':sh+' ingredienser går igen fra de andre retter');
 }
 const A={
+  planopen(el){
+    const id=el.dataset.dish;
+    S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.sideFor=null;
+    const m=mondayOf(new Date());
+    S.planFor={id:id,week:S.week<m?m:S.week};renderSheet();
+  },
+  planweek(el){
+    const m=mondayOf(new Date()),w=addDays(S.planFor.week,7*Number(el.dataset.d));
+    if(w<m)return;S.planFor.week=w;renderSheet();
+  },
+  planday(el){
+    const id=S.planFor.id,k=el.dataset.date,d=dish(id);
+    S.plan[k]={date:k,dishId:id};S.confirmDay=null;
+    persist();closeSheet();render();toast(d.n+' er lagt på '+longDate(k));
+  },
+  planweekyes(){
+    const id=S.planFor.id,wk=dk(S.planFor.week),d=SBY[id];
+    const cur=S.snacks[wk]||{};cur[id]=true;S.snacks[wk]=cur;
+    persist();closeSheet();render();toast(d.n+' er lagt på ugens snacks (uge '+isoWeek(parseKey(wk))+')');
+  },
   sideopen(el){
     const id=el.dataset.dish,items=sideItems(id);
     if(!items.length){toast('Der er ikke noget tilbehør at lægge på listen');return;}
@@ -999,7 +1035,7 @@ const A={
     persist();closeSheet();render();
     toast(add.length?'Tilbehøret er gemt og står på indkøbslisten':'Tilbehøret er fjernet');
   },
-d(el){S.kind=el.dataset.k;S.confirmMine=null;render();},
+  kind(el){S.kind=el.dataset.k;S.confirmMine=null;render();},
   addopen(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=true;renderSheet();const w=$('#rw');if(w)w.value=getWorker();},
   async fetchrec(){
     const u=(($('#ru')||{}).value||'').trim(),msg=$('#rmsg');
