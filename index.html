@@ -416,18 +416,115 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y0)/86400000+1)/7);}
 const longDate=k=>{const d=parseKey(k);return FULL[d.getDay()]+' '+d.getDate()+'. '+MON[d.getMonth()];};
 
+
+/* ---------- Egne opskrifter (fra link eller indtastet) ---------- */
+const clean=s=>String(s==null?'':s).replace(/&/g,'og').replace(/[<>"`]/g,'').replace(/\s+/g,' ').trim();
+const CATW={};CATS.forEach(c=>{CATW[c[0]]=c[1];});
+function catGuess(n){
+  if(/(brød|bolle|tortilla|wrap|pita|rundstykke)/.test(n))return 'Brød';
+  if(/(kød|bøf|kylling|bacon|skinke|pølse|laks|torsk|fisk|rejer|flæsk|medister|svine|okse|lam|filet|hakket)/.test(n))return 'Kød & fisk';
+  if(/(mælk|fløde|æg|ost|smør|yoghurt|skyr|creme)/.test(n))return 'Mejeri & æg';
+  if(/(løg|gulerod|kartof|tomat|agurk|salat|peberfrugt|squash|broccoli|blomkål|spinat|svampe|champignon|porre|selleri|persille|dild|purløg|basilikum|citron|lime|æble|banan|appelsin|frugt|bær|avocado|hvidløg|ingefær|kål)/.test(n))return 'Frugt & grønt';
+  return 'Kolonial';
+}
+function registerMine(list){
+  for(let i=DISHES.length-1;i>=0;i--)if(DISHES[i].mine){delete BYID[DISHES[i].id];DISHES.splice(i,1);}
+  for(let i=SNACKS.length-1;i>=0;i--)if(SNACKS[i].mine){delete SBY[SNACKS[i].id];SNACKS.splice(i,1);}
+  list.forEach(m=>{
+    const ing=m.ing.map(i=>[clean(i[0]),Number(i[1])||1,clean(i[2])||'stk']).filter(i=>i[0]);
+    ing.forEach(i=>{if(!CATOF[i[0]]){CATOF[i[0]]=catGuess(i[0]);WOF[i[0]]=CATW[CATOF[i[0]]]||0.5;}});
+    const h=[1,2,3].indexOf(m.h)>=0?m.h:2,steps=(m.s||[]).map(clean).filter(Boolean);
+    if(m.kind==='snack'){
+      const d={id:m.id,n:clean(m.n),e:'🍽️',m:Number(m.m)||30,y:Number(m.y)||4,u:'portioner',h:h,ing:ing,k:'',s:steps,mine:true,i:SNACKS.length+3};
+      SNACKS.push(d);SBY[d.id]=d;HEALTH[d.id]=h;RECIPES[d.id]={k:'',s:steps,src:m.src||''};
+    }else{
+      const d={id:m.id,n:clean(m.n),e:'🍽️',m:Number(m.m)||45,ing:ing,mine:true,i:DISHES.length};
+      DISHES.push(d);BYID[d.id]=d;HEALTH[d.id]=h;RECIPES[d.id]={k:'',s:steps,src:m.src||''};
+    }
+  });
+}
+const UMAP={kg:[1000,'g'],g:[1,'g'],gram:[1,'g'],l:[10,'dl'],liter:[10,'dl'],dl:[1,'dl'],cl:[0.1,'dl'],ml:[0.01,'dl'],spsk:[1,'spsk'],tsk:[1,'tsk'],'dåse':[1,'dåse'],'dåser':[1,'dåse'],ds:[1,'dåse'],pk:[1,'pk'],pakke:[1,'pk'],pakker:[1,'pk'],'bæger':[1,'bæger'],'bægre':[1,'bæger'],glas:[1,'glas'],bundt:[1,'bundt'],fed:[1,'fed'],stk:[1,'stk'],stykker:[1,'stk'],stykke:[1,'stk'],knivspids:[1,'knivspids'],'håndfuld':[1,'håndfuld'],skive:[1,'skive'],skiver:[1,'skive']};
+const PANTRY=/^(frisk(kværnet)? )?(salt|peber|vand|(oliven|raps|solsikke|spise)?olie)(\s|,|$)|^salt og peber/;
+function canon(n){
+  n=n.toLowerCase().replace(/\([^)]*\)/g,'').split(',')[0].replace(/^af\s+/,'').replace(/\s+/g,' ').trim();
+  const known=Object.keys(CATOF).sort((a,b)=>b.length-a.length);
+  for(const k of known){if(new RegExp('(^|\\s)'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|\\s)').test(n))return k;}
+  return n;
+}
+/* Én ingrediens-linje, fx "400 g hakket oksekød" → [navn, mængde, enhed] eller null */
+function parseIng(line){
+  let t=clean(line).replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim();
+  if(!t||PANTRY.test(t.toLowerCase()))return null;
+  const fr={'½':.5,'¼':.25,'¾':.75,'⅓':1/3};
+  let q=null,rest=t,m;
+  if((m=t.match(/^(\d+)?\s*([½¼¾⅓])\s*(.*)$/))){q=(+m[1]||0)+fr[m[2]];rest=m[3];}
+  else if((m=t.match(/^(\d+)\s+(\d+)\/(\d+)\s+(.*)$/))){q=+m[1]+m[2]/m[3];rest=m[4];}
+  else if((m=t.match(/^(\d+)\/(\d+)\s+(.*)$/))){q=m[1]/m[2];rest=m[3];}
+  else if((m=t.match(/^(\d+(?:[.,]\d+)?)\s*(?:-|–|til)\s*\d+(?:[.,]\d+)?\s*(.*)$/))){q=parseFloat(m[1].replace(',','.'));rest=m[2];}
+  else if((m=t.match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/))){q=parseFloat(m[1].replace(',','.'));rest=m[2];}
+  let unit='stk',f=1;
+  if((m=rest.match(/^([A-Za-zÆØÅæøå]+)\.?(?:\s+(.*))?$/))&&UMAP[m[1].toLowerCase()]&&m[2]){f=UMAP[m[1].toLowerCase()][0];unit=UMAP[m[1].toLowerCase()][1];rest=m[2];}
+  const name=canon(rest.replace(/^(en|et|lidt)\s+/i,''));
+  if(!name||PANTRY.test(name))return null;
+  return [name,Math.round((q==null?1:q)*f*100)/100,unit];
+}
+function isoMin(v){
+  if(typeof v!=='string')return 0;
+  const m=v.match(/^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/);
+  return m?(+m[1]||0)*1440+(+m[2]||0)*60+(+m[3]||0):0;
+}
+function plain(s){try{return clean(new DOMParser().parseFromString(String(s),'text/html').documentElement.textContent);}catch(e){return clean(s);}}
+function steps(x){
+  if(!x)return [];
+  if(typeof x==='string')return x.split(/\n+/).map(plain).filter(Boolean);
+  if(Array.isArray(x))return x.reduce((a,y)=>a.concat(steps(y)),[]);
+  if(x.itemListElement)return steps(x.itemListElement);
+  return steps(x.text||x.name||'');
+}
+/* Finder en opskrift i sidens ld+json (schema.org/Recipe). Returnerer null, hvis der ikke er nogen. */
+function parseRecipeHtml(html){
+  let doc;try{doc=new DOMParser().parseFromString(html,'text/html');}catch(e){return null;}
+  let found=null;
+  const walk=o=>{
+    if(found||!o)return;
+    if(Array.isArray(o)){o.forEach(walk);return;}
+    if(typeof o!=='object')return;
+    const t=[].concat(o['@type']||[]);
+    if(t.indexOf('Recipe')>=0){found=o;return;}
+    if(o['@graph'])walk(o['@graph']);
+  };
+  doc.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{try{walk(JSON.parse(sc.textContent));}catch(e){}});
+  if(!found)return null;
+  const y=[].concat(found.recipeYield||[]).join(' ').match(/\d+/);
+  const mins=isoMin(found.totalTime)||(isoMin(found.prepTime)+isoMin(found.cookTime));
+  return {n:plain(found.name||''),m:mins||0,p:y?+y[0]:0,ing:[].concat(found.recipeIngredient||[]).map(plain).filter(Boolean),steps:steps(found.recipeInstructions)};
+}
+async function fetchHtml(u){
+  const tries=[x=>x,x=>'https://api.allorigins.win/raw?url='+encodeURIComponent(x),x=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(x),x=>'https://corsproxy.io/?url='+encodeURIComponent(x)];
+  for(const f of tries){
+    try{
+      const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
+      const r=await fetch(f(u),{signal:ctl.signal});clearTimeout(tm);
+      if(r.ok){const h=await r.text();if(h&&h.length>200)return h;}
+    }catch(e){}
+  }
+  return null;
+}
+
 /* ---------- Tilstand ---------- */
-const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false};
+const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null};
 let db=null,user=null,toastT=0;
 const $=s=>document.querySelector(s);
 const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
 
 const KEY='spisetid-v1';
 /* Lagring: gemmes både i localStorage og IndexedDB, og den nyeste kopi vinder ved start. */
-const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,at:Date.now()});
+const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,mine:S.mine,at:Date.now()});
 function applySnap(r){
   S.plan=r.plan||{};S.ratings=r.ratings||{};S.shop=r.shop||{};S.snacks=r.snacks||{};
   S.custom=Array.isArray(r.custom)?r.custom:[];
+  S.mine=Array.isArray(r.mine)?r.mine.filter(m=>m&&m.id&&m.n&&Array.isArray(m.ing)):[];
+  registerMine(S.mine);
   if(r.people>=1&&r.people<=12)S.people=r.people;
 }
 function idbOpen(){return new Promise((res,rej)=>{try{const q=indexedDB.open('spisetid',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}});}
@@ -631,7 +728,7 @@ function viewSnacks(){
   }
   h+='<div class="sumbar">'+picked.length+(picked.length===1?' snack valgt':' snacks valgt')+' til ugen<span>Varerne ligger på indkøbslisten. Mængderne passer til '+S.people+' personer.</span></div>';
   picked.forEach(d=>{
-    h+='<article class="drow snack">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+'</span>'+facts(d)+'<span class="dmeta">Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+'</span>'+(S.confirmSnack===d.id?'<div class="confirm" role="alert" style="margin-top:8px"><span>Fjern '+d.n+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="snackyes" data-id="'+d.id+'">Ja, fjern</button><button class="btn ghost" data-a="snackno">Behold</button></span></div>':'')+'<span class="row" style="margin-top:8px;align-items:center"><button class="btn" data-a="rec" data-dish="'+d.id+'">Opskrift</button><button class="link" data-a="snackremove" data-id="'+d.id+'">Fjern</button></span></div></article>';
+    h+='<article class="drow snack">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+'</span>'+facts(d)+'<span class="dmeta">Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+'</span><span class="dmeta">'+famLine(d.id)+'</span>'+(S.confirmSnack===d.id?'<div class="confirm" role="alert" style="margin-top:8px"><span>Fjern '+d.n+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="snackyes" data-id="'+d.id+'">Ja, fjern</button><button class="btn ghost" data-a="snackno">Behold</button></span></div>':'')+'<span class="row" style="margin-top:8px;align-items:center"><button class="btn" data-a="rec" data-dish="'+d.id+'">Opskrift</button><button class="link" data-a="snackremove" data-id="'+d.id+'">Fjern</button></span><div class="rate"><span class="lbl">Hvordan smagte det?</span><br>'+stars(d.id,ratingInfo(d.id).mine)+'</div></div></article>';
   });
   return h+'<div class="row"><button class="btn ghost" data-a="snackopen">Tilføj snack</button></div>';
 }
@@ -647,12 +744,20 @@ function viewShop(){
 }
 function viewDishes(){
   const F=[['alle','Alle'],['sund','Sunde'],['fav','Favoritter'],['ny','Ikke prøvet'],['nej','Ikke igen']];
-  let h='<div class="chips" role="group" aria-label="Filter">'+F.map(f=>'<button class="chip'+(S.filter===f[0]?' on':'')+'" data-a="filter" data-f="'+f[0]+'" aria-pressed="'+(S.filter===f[0])+'">'+f[1]+'</button>').join('')+'</div><p class="hint">Bladene viser, hvor sund retten er, og tiden er et skøn. Begge dele er vores vurdering og ikke en næringsberegning.</p>';
-  const list=DISHES.filter(d=>S.filter==='alle'||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
-  if(!list.length)return h+'<p class="empty">Ingen retter her endnu. Giv stjerner til de retter, I har smagt.</p>';
+  const base=S.kind==='snacks'?SNACKS:DISHES;
+  let h='<div class="chips" role="group" aria-label="Type"><button class="chip'+(S.kind==='retter'?' on':'')+'" data-a="kind" data-k="retter" aria-pressed="'+(S.kind==='retter')+'">Retter</button><button class="chip'+(S.kind==='snacks'?' on':'')+'" data-a="kind" data-k="snacks" aria-pressed="'+(S.kind==='snacks')+'">Snacks</button></div>';
+  h+='<div class="chips" role="group" aria-label="Filter">'+F.map(f=>'<button class="chip'+(S.filter===f[0]?' on':'')+'" data-a="filter" data-f="'+f[0]+'" aria-pressed="'+(S.filter===f[0])+'">'+f[1]+'</button>').join('')+'</div><p class="hint">Bladene viser, hvor sund retten er, og tiden er et skøn. Begge dele er vores vurdering og ikke en næringsberegning.</p>';
+  h+='<div class="row" style="margin-top:0"><button class="btn ghost" data-a="addopen">Tilføj egen opskrift</button></div>';
+  const list=base.filter(d=>S.filter==='alle'||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
+  if(!list.length)return h+'<p class="empty">Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.</p>';
   list.forEach(d=>{
     const r=ratingInfo(d.id);
-    h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+'</span>'+facts(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button></div></article>';
+    h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(d.mine?'<span class="badge" style="background:var(--sun-soft);color:var(--sun-ink)">Egen</span>':'')+'</span>'+facts(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button>';
+    if(d.mine){
+      if(S.confirmMine===d.id)h+='<div class="confirm" role="alert"><span>Slet '+d.n+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="mineyes" data-id="'+d.id+'">Ja, slet</button><button class="btn ghost" data-a="mineno">Behold</button></span></div>';
+      else h+='<button class="link" data-a="minedel" data-id="'+d.id+'" style="display:block;padding-left:0">Slet opskrift</button>';
+    }
+    h+='</div></article>';
   });
   return h;
 }
@@ -668,6 +773,10 @@ function render(){
 /* ---------- Vælg ret (ark) ---------- */
 function renderSheet(){
   const el=$('#sheet');
+  if(S.addSheet){
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilføj opskrift"><header class="phead"><h2>Tilføj egen opskrift</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><h3 class="rh" style="margin-top:0">Hent fra et link</h3><label class="sr" for="ru">Link</label><input id="ru" class="search" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Indsæt link til en opskrift" autocomplete="off"><button class="btn ghost" data-a="fetchrec" style="margin-top:8px">Hent opskrift</button><p class="meta" id="rmsg">Virker på de fleste opskriftssider. Du kan altid rette bagefter eller skrive opskriften selv.</p><h3 class="rh">Opskrift</h3><label class="meta" for="rk">Type</label><select id="rk" class="search"><option value="ret">Ret til aftensmad</option><option value="snack">Snack eller bagværk</option></select><label class="meta" for="rn">Navn</label><input id="rn" class="search" type="text" maxlength="80" autocomplete="off"><label class="meta" for="rt">Tid i minutter</label><input id="rt" class="search" type="number" inputmode="numeric" min="1" max="600" placeholder="fx 45"><label class="meta" for="rp">Antal portioner (hvor mange opskriften er til)</label><input id="rp" class="search" type="number" inputmode="numeric" min="1" max="50" value="4"><label class="meta" for="rh">Hvor sund er den?</label><select id="rh" class="search"><option value="1">Hyggemad</option><option value="2" selected>Okay</option><option value="3">Sund</option></select><label class="meta" for="ri">Ingredienser (én på hver linje, fx 400 g hakket oksekød)</label><textarea id="ri" class="search" rows="7" style="min-height:140px"></textarea><p class="meta">Salt, peber, vand og olie kommer ikke med på indkøbslisten.</p><label class="meta" for="rs">Sådan gør du (ét trin på hver linje)</label><textarea id="rs" class="search" rows="7" style="min-height:140px"></textarea><button class="btn" data-a="saverec" style="margin-top:10px">Gem opskrift</button></div></section>';
+    document.body.style.overflow='hidden';return;
+  }
   if(S.backup){
     el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Sikkerhedskopi"><header class="phead"><h2>Sikkerhedskopi</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p>Appen gemmer på telefonen. Hvis madplanen alligevel forsvinder, kan du hente den igen med en kode.</p><h3 class="rh">1. Gem koden</h3><button class="btn" data-a="bkcopy">Kopiér kode</button><p class="meta" style="margin-top:6px">Indsæt koden i en note eller en besked til dig selv.</p><h3 class="rh">2. Hent madplanen igen</h3><label class="sr" for="bk">Kode</label><textarea id="bk" class="search" rows="3" placeholder="Indsæt koden her" style="min-height:84px"></textarea><button class="btn ghost" data-a="bkload">Hent fra kode</button></div></section>';
     document.body.style.overflow='hidden';return;
@@ -678,7 +787,7 @@ function renderSheet(){
   }
   if(S.rec){
     const d=dish(S.rec)||SBY[S.rec],r=RECIPES[S.rec]||{s:[],k:''};
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p><h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[0])+'</span><span class="qty">'+fmtRecipeQty(i[1]*S.people/4,i[2])+'</span></li>').join('')+'</ul><h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+'</div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p><h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[0])+'</span><span class="qty">'+fmtRecipeQty(i[1]*S.people/4,i[2])+'</span></li>').join('')+'</ul><h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+(r.src&&/^https?:\/\//.test(r.src)?'<p class="meta"><a href="'+esc(r.src)+'" target="_blank" rel="noopener noreferrer">Se opskriften på den oprindelige side</a></p>':'')+'</div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(!S.sheet){el.innerHTML='';document.body.style.overflow='';return;}
@@ -706,14 +815,16 @@ function renderSheetList(){
   }
   box.innerHTML=h;
 }
-const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet;
-function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.q='';renderSheet();}
+const anySheet=()=>S.sheet||S.rec||S.backup||S.snackSheet||S.addSheet;
+function closeSheet(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;S.q='';renderSheet();}
 function renderSnackList(){
   const box=$('#snlist');if(!box||!S.snackSheet)return;
   const sel=S.snacks[dk(S.week)]||{};
-  box.innerHTML=SNACKS.map(d=>{
+  const rank=d=>({fav:0,ny:1,ok:1,nej:2})[verdict(d.id)];
+  const list=SNACKS.slice().sort((a,b)=>rank(a)-rank(b));
+  box.innerHTML=list.map(d=>{
     const on=!!sel[d.id];
-    return '<button class="drow'+(on?' picked':'')+'" data-a="snacktoggle" data-id="'+d.id+'" aria-pressed="'+on+'">'+tile(d,true)+'<span class="dmain"><span class="dname">'+d.n+(on?'<span class="badge">Valgt ✓</span>':'')+'</span>'+facts(d)+'<span class="dmeta">Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+'</span></span></button>';
+    return '<button class="drow'+(on?' picked':'')+'" data-a="snacktoggle" data-id="'+d.id+'" aria-pressed="'+on+'">'+tile(d,true)+'<span class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(on?'<span class="badge">Valgt ✓</span>':'')+'</span>'+facts(d)+'<span class="dmeta">Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+(ratingInfo(d.id).n?' · '+famLine(d.id):'')+'</span></span></button>';
   }).join('');
 }
 
@@ -730,6 +841,45 @@ function doPick(date,id){
   if(others.length&&sh)toast(sh===1?'1 ingrediens går igen fra de andre retter':sh+' ingredienser går igen fra de andre retter');
 }
 const A={
+  kind(el){S.kind=el.dataset.k;S.confirmMine=null;render();},
+  addopen(){S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=true;renderSheet();},
+  async fetchrec(){
+    const u=(($('#ru')||{}).value||'').trim(),msg=$('#rmsg');
+    if(!/^https?:\/\/\S+$/i.test(u)){msg.textContent='Indsæt et link, der starter med https://';return;}
+    msg.textContent='Henter opskriften …';
+    const html=await fetchHtml(u);
+    if(!$('#rn')){return;}
+    if(!html){msg.textContent='Kunne ikke hente siden. Kopiér ingredienser og fremgangsmåde fra siden, og indsæt dem i felterne nedenfor.';return;}
+    const r=parseRecipeHtml(html);
+    if(!r||!r.ing.length){msg.textContent='Fandt ingen opskrift på den side. Kopiér ingredienser og fremgangsmåde fra siden, og indsæt dem i felterne nedenfor.';return;}
+    $('#rn').value=r.n;if(r.m)$('#rt').value=r.m;if(r.p)$('#rp').value=r.p;
+    $('#ri').value=r.ing.join('\n');$('#rs').value=r.steps.join('\n');
+    $('#rn').dataset.src=u;
+    msg.textContent='Opskriften er hentet. Tjek ingredienserne, og ret det, der ikke passer, før du gemmer.';
+  },
+  saverec(){
+    const n=clean($('#rn').value),kind=$('#rk').value==='snack'?'snack':'ret';
+    const p=Math.max(1,Math.min(50,parseInt($('#rp').value,10)||4)),mins=parseInt($('#rt').value,10)||(kind==='snack'?30:45);
+    const f=kind==='snack'?1:4/p;
+    const ing=[];
+    $('#ri').value.split(/\n+/).forEach(l=>{const x=parseIng(l);if(x){x[1]=Math.round(x[1]*f*100)/100;const same=ing.find(y=>y[0]===x[0]&&y[2]===x[2]);if(same)same[1]+=x[1];else ing.push(x);}});
+    if(!n){toast('Skriv et navn til opskriften');return;}
+    if(!ing.length){toast('Skriv mindst én ingrediens');return;}
+    const st=$('#rs').value.split(/\n+/).map(x=>clean(x).replace(/^\d+[.)]\s*/,'')).filter(Boolean);
+    const src=($('#rn').dataset.src||'').slice(0,500);
+    const m={id:(kind==='snack'?'ms-':'md-')+Date.now().toString(36),kind:kind,n:n,m:Math.max(1,Math.min(600,mins)),h:parseInt($('#rh').value,10)||2,ing:ing,s:st.length?st:['Se opskriften på den oprindelige side.'],src:src};
+    if(kind==='snack')m.y=p;
+    S.mine.push(m);registerMine(S.mine);S.kind=kind==='snack'?'snacks':'retter';
+    persist();closeSheet();render();toast('Opskriften er gemt');
+  },
+  minedel(el){S.confirmMine=el.dataset.id;render();},
+  mineno(){S.confirmMine=null;render();},
+  mineyes(el){
+    const id=el.dataset.id;S.mine=S.mine.filter(m=>m.id!==id);registerMine(S.mine);
+    Object.keys(S.plan).forEach(k=>{if(S.plan[k].dishId===id)S.plan[k].dishId=null;});
+    Object.keys(S.snacks).forEach(w=>{delete S.snacks[w][id];if(!Object.keys(S.snacks[w]).length)delete S.snacks[w];});
+    S.confirmMine=null;persist();render();toast('Opskriften er slettet');
+  },
   tab(el){S.tab=el.dataset.t;S.confirmDay=null;S.confirmSnack=null;if(anySheet())closeSheet();render();window.scrollTo(0,0);},
   week(el){S.week=addDays(S.week,7*Number(el.dataset.d));S.confirmDay=null;render();},
   people(el){const n=Math.max(1,Math.min(12,S.people+Number(el.dataset.d)));if(n===S.people)return;S.people=n;persist(()=>db.doc('settings/household').set({people:n}));render();},
