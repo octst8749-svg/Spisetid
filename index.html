@@ -892,7 +892,7 @@ function renderSheet(){
   const el=$('#sheet');
   if(S.sideFor){
     const dd=dish(S.sideFor);
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilbehør til indkøbslisten"><header class="phead"><h2>Vælg tilbehør</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Til '+(dd?dd.n:'')+'. Vælg ét kød eller fisk og de grøntsager, I vil have. Valget kommer på indkøbslisten og står i opskriften. Mængderne passer til '+S.people+' personer.</p>'+S.sideItems.map((it,i)=>{const on=!!S.sideSel[i];return '<button class="drow'+(on?' picked':'')+'" data-a="sidetoggle" data-i="'+i+'" aria-pressed="'+on+'"><span class="cb" aria-hidden="true">'+(on?'✓':'')+'</span><span class="dmain"><span class="iname">'+it.n+'</span><span class="icap">'+(it.kind==='kød'?'Vælg ét kød eller fisk':'Sundt tilbehør')+'</span></span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></button>';}).join('')+'<button class="btn" data-a="sideadd" style="margin-top:10px">Gem tilbehør</button></div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilbehør til indkøbslisten"><header class="phead"><h2>Vælg tilbehør</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Til '+(dd?dd.n:'')+'. Tryk på det, I vil have: ét kød eller fisk og de grøntsager, I vil have. Valget kommer på indkøbslisten og står i opskriften. Mængderne passer til '+S.people+' personer.</p>'+S.sideItems.map((it,i)=>{const on=!!S.sideSel[i];return '<button class="drow'+(on?' picked':'')+'" data-a="sidetoggle" data-i="'+i+'" aria-pressed="'+on+'"><span class="cb" aria-hidden="true">'+(on?'✓':'')+'</span><span class="dmain"><span class="iname">'+it.n+'</span><span class="icap">'+(it.kind==='kød'?'Vælg ét kød eller fisk':'Sundt tilbehør')+'</span></span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></button>';}).join('')+'<button class="btn" data-a="sideadd" style="margin-top:10px">Gem tilbehør</button></div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(S.addSheet){
@@ -967,7 +967,7 @@ const A={
     const id=el.dataset.dish,items=sideItems(id);
     if(!items.length){toast('Der er ikke noget tilbehør at lægge på listen');return;}
     S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;
-    let firstMeat=true;const prev=S.sides[id];S.sideFor=id;S.sideItems=items;S.sideSel=items.map(it=>{if(prev)return prev.indexOf(it.n)>=0;if(it.kind!=='kød')return true;const v=firstMeat;firstMeat=false;return v;});renderSheet();
+    const prev=S.sides[id]||[];S.sideFor=id;S.sideItems=items;S.sideSel=items.map(it=>prev.indexOf(it.n)>=0);renderSheet();
   },
   sidetoggle(el){
     const i=Number(el.dataset.i),it=S.sideItems[i];
