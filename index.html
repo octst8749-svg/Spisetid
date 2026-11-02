@@ -725,7 +725,7 @@ function renderTabs(){
 function sugRow(s,date){
   const d=s.d;
   const sh=s.shared.length?'<span class="shared">Bruger også: '+s.shared.slice(0,3).join(', ')+(s.shared.length>3?' +'+(s.shared.length-3):'')+'</span>':'';
-  return '<button class="drow" data-a="pick" data-dish="'+d.id+'"'+(date?' data-date="'+date+'"':'')+'>'+tile(d,true)+'<span class="dmain"><span class="dname">'+d.n+badge(s.v)+'</span>'+facts(d)+(s.hasChosen?'<span class="dmeta">'+s.fresh+' nye varer at købe</span>':'')+(NEEDS[d.id]?'<span class="needs">Mangler kød eller fisk</span>':'')+sh+'</span></button>';
+  return '<button class="drow" data-a="pick" data-dish="'+d.id+'"'+(date?' data-date="'+date+'"':'')+'>'+tile(d,true)+'<span class="dmain"><span class="dname">'+d.n+badge(s.v)+'</span>'+facts(d)+(DESC[d.id]?'<span class="dmeta">'+DESC[d.id]+'</span>':'')+(s.hasChosen?'<span class="dmeta">'+s.fresh+' nye varer at købe</span>':'')+(NEEDS[d.id]?'<span class="needs">Mangler kød eller fisk</span>':'')+sh+'</span></button>';
 }
 
 function planCard(k){
