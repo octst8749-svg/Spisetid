@@ -481,6 +481,46 @@ function steps(x){
   if(x.itemListElement)return steps(x.itemListElement);
   return steps(x.text||x.name||'');
 }
+
+/* Opskrift fra ren tekst: leder efter overskrifterne Ingredienser og Fremgangsmåde */
+function parseRecipeText(text){
+  const L=String(text).split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const isIng=x=>/^ingredienser\b/i.test(x),isSt=x=>/^(fremgangsmåde|sådan gør (du|man)|tilberedning|instruktioner|metode)\b/i.test(x);
+  const stop=x=>/^(tip|tips|næringsindhold|næring|print|del\b|kommentarer?|se også|gem opskrift|relaterede|mere inspiration|abonner|nyhedsbrev)/i.test(x);
+  const a=L.findIndex(isIng);if(a<0)return null;
+  let b=L.findIndex((x,i)=>i>a&&isSt(x));
+  const end=b<0?Math.min(L.length,a+40):b;
+  const ing=[];
+  for(let i=a+1;i<end;i++){const x=L[i];if(stop(x))break;if(x.length<=100&&!/^(til\b.*:|for\b.*:)$/i.test(x)||/^\d/.test(x))ing.push(x);}
+  const steps=[];
+  if(b>=0){for(let i=b+1;i<L.length&&steps.length<20;i++){const x=L[i];if(stop(x))break;if(x.length>12)steps.push(x);}}
+  const head=L.slice(0,a).join(' '),y=head.match(/(\d+)\s*(pers|portioner|personer)/i),t=head.match(/(\d+)\s*min/i);
+  return ing.length?{n:'',m:t?+t[1]:0,p:y?+y[1]:0,ing:ing,steps:steps}:null;
+}
+/* Andre måder en opskrift kan ligge på en side: microdata og de mest brugte opskriftsplugins */
+function parseOther(doc){
+  const txt=e=>plain(e.textContent||''),all=(r,sel)=>Array.from(r.querySelectorAll(sel));
+  const num=x=>{const m=String(x||'').match(/\d+/);return m?+m[0]:0;};
+  const root=doc.querySelector('[itemtype*="schema.org/Recipe"]')||doc.querySelector('.wprm-recipe-container,.tasty-recipes,.mv-create-wrapper,.recipe-card')||null;
+  if(root){
+    let ing=all(root,'[itemprop="recipeIngredient"],[itemprop="ingredients"],.wprm-recipe-ingredient,.tasty-recipes-ingredients li,.mv-create-ingredients li').map(txt).filter(Boolean);
+    let st=all(root,'.wprm-recipe-instruction-text,.tasty-recipes-instructions li,.mv-create-instructions li').map(txt).filter(Boolean);
+    if(!st.length){const si=root.querySelector('[itemprop="recipeInstructions"]');if(si){const li=all(si,'li,p').map(txt).filter(Boolean);st=li.length?li:si.textContent.split(/\n+/).map(plain).filter(Boolean);}}
+    if(ing.length){
+      const nm=root.querySelector('[itemprop="name"],.wprm-recipe-name,.tasty-recipes-title');
+      const yl=root.querySelector('[itemprop="recipeYield"],.wprm-recipe-servings,.tasty-recipes-yield');
+      const tm=root.querySelector('[itemprop="totalTime"],[itemprop="prepTime"]');
+      const mins=tm?(isoMin(tm.getAttribute('content')||tm.getAttribute('datetime')||'')||num(tm.textContent)):0;
+      return {n:nm?txt(nm):'',m:mins,p:yl?num(yl.getAttribute('content')||yl.textContent):0,ing:ing,steps:st};
+    }
+  }
+  const body=doc.body;if(!body)return null;
+  all(body,'script,style,nav,footer,noscript').forEach(e=>e.remove());
+  all(body,'br,p,li,div,h1,h2,h3,h4,h5,h6,tr').forEach(e=>e.append('\n'));
+  const r=parseRecipeText(body.textContent||'');
+  if(r){const h=doc.querySelector('h1');r.n=h?txt(h):plain((doc.querySelector('title')||{}).textContent||'');}
+  return r;
+}
 /* Finder en opskrift i sidens ld+json (schema.org/Recipe). Returnerer null, hvis der ikke er nogen. */
 function parseRecipeHtml(html){
   let doc;try{doc=new DOMParser().parseFromString(html,'text/html');}catch(e){return null;}
@@ -494,7 +534,7 @@ function parseRecipeHtml(html){
     if(o['@graph'])walk(o['@graph']);
   };
   doc.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{try{walk(JSON.parse(sc.textContent));}catch(e){}});
-  if(!found)return null;
+  if(!found)return parseOther(doc);
   const y=[].concat(found.recipeYield||[]).join(' ').match(/\d+/);
   const mins=isoMin(found.totalTime)||(isoMin(found.prepTime)+isoMin(found.cookTime));
   return {n:plain(found.name||''),m:mins||0,p:y?+y[0]:0,ing:[].concat(found.recipeIngredient||[]).map(plain).filter(Boolean),steps:steps(found.recipeInstructions)};
@@ -774,7 +814,7 @@ function render(){
 function renderSheet(){
   const el=$('#sheet');
   if(S.addSheet){
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilføj opskrift"><header class="phead"><h2>Tilføj egen opskrift</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><h3 class="rh" style="margin-top:0">Hent fra et link</h3><label class="sr" for="ru">Link</label><input id="ru" class="search" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Indsæt link til en opskrift" autocomplete="off"><button class="btn ghost" data-a="fetchrec" style="margin-top:8px">Hent opskrift</button><p class="meta" id="rmsg">Virker på de fleste opskriftssider. Du kan altid rette bagefter eller skrive opskriften selv.</p><h3 class="rh">Opskrift</h3><label class="meta" for="rk">Type</label><select id="rk" class="search"><option value="ret">Ret til aftensmad</option><option value="snack">Snack eller bagværk</option></select><label class="meta" for="rn">Navn</label><input id="rn" class="search" type="text" maxlength="80" autocomplete="off"><label class="meta" for="rt">Tid i minutter</label><input id="rt" class="search" type="number" inputmode="numeric" min="1" max="600" placeholder="fx 45"><label class="meta" for="rp">Antal portioner (hvor mange opskriften er til)</label><input id="rp" class="search" type="number" inputmode="numeric" min="1" max="50" value="4"><label class="meta" for="rh">Hvor sund er den?</label><select id="rh" class="search"><option value="1">Hyggemad</option><option value="2" selected>Okay</option><option value="3">Sund</option></select><label class="meta" for="ri">Ingredienser (én på hver linje, fx 400 g hakket oksekød)</label><textarea id="ri" class="search" rows="7" style="min-height:140px"></textarea><p class="meta">Salt, peber, vand og olie kommer ikke med på indkøbslisten.</p><label class="meta" for="rs">Sådan gør du (ét trin på hver linje)</label><textarea id="rs" class="search" rows="7" style="min-height:140px"></textarea><button class="btn" data-a="saverec" style="margin-top:10px">Gem opskrift</button></div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilføj opskrift"><header class="phead"><h2>Tilføj egen opskrift</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><h3 class="rh" style="margin-top:0">Hent fra et link</h3><label class="sr" for="ru">Link</label><input id="ru" class="search" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Indsæt link til en opskrift" autocomplete="off"><button class="btn ghost" data-a="fetchrec" style="margin-top:8px">Hent opskrift</button><p class="meta" id="rmsg">Virker på de fleste opskriftssider. Du kan altid rette bagefter eller skrive opskriften selv.</p><h3 class="rh">Eller indsæt hele teksten fra siden</h3><label class="sr" for="rtext">Tekst fra opskriftssiden</label><textarea id="rtext" class="search" rows="4" style="min-height:90px" placeholder="Åbn opskriften, markér det hele, kopiér, og indsæt her"></textarea><button class="btn ghost" data-a="readtext" style="margin-top:8px">Læs teksten</button><h3 class="rh">Opskrift</h3><label class="meta" for="rk">Type</label><select id="rk" class="search"><option value="ret">Ret til aftensmad</option><option value="snack">Snack eller bagværk</option></select><label class="meta" for="rn">Navn</label><input id="rn" class="search" type="text" maxlength="80" autocomplete="off"><label class="meta" for="rt">Tid i minutter</label><input id="rt" class="search" type="number" inputmode="numeric" min="1" max="600" placeholder="fx 45"><label class="meta" for="rp">Antal portioner (hvor mange opskriften er til)</label><input id="rp" class="search" type="number" inputmode="numeric" min="1" max="50" value="4"><label class="meta" for="rh">Hvor sund er den?</label><select id="rh" class="search"><option value="1">Hyggemad</option><option value="2" selected>Okay</option><option value="3">Sund</option></select><label class="meta" for="ri">Ingredienser (én på hver linje, fx 400 g hakket oksekød)</label><textarea id="ri" class="search" rows="7" style="min-height:140px"></textarea><p class="meta">Salt, peber, vand og olie kommer ikke med på indkøbslisten.</p><label class="meta" for="rs">Sådan gør du (ét trin på hver linje)</label><textarea id="rs" class="search" rows="7" style="min-height:140px"></textarea><button class="btn" data-a="saverec" style="margin-top:10px">Gem opskrift</button></div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(S.backup){
@@ -856,6 +896,14 @@ const A={
     $('#ri').value=r.ing.join('\n');$('#rs').value=r.steps.join('\n');
     $('#rn').dataset.src=u;
     msg.textContent='Opskriften er hentet. Tjek ingredienserne, og ret det, der ikke passer, før du gemmer.';
+  },
+  readtext(){
+    const r=parseRecipeText(($('#rtext')||{}).value||''),msg=$('#rmsg');
+    if(!r){msg.textContent='Kunne ikke finde ingredienser i teksten. Teksten skal indeholde overskriften Ingredienser.';return;}
+    if(r.n)$('#rn').value=r.n;if(r.m)$('#rt').value=r.m;if(r.p)$('#rp').value=r.p;
+    $('#ri').value=r.ing.join('\n');$('#rs').value=r.steps.join('\n');
+    msg.textContent='Teksten er læst. Tjek ingredienserne, og skriv navnet, hvis det mangler.';
+    $('#rn').scrollIntoView({block:'center'});
   },
   saverec(){
     const n=clean($('#rn').value),kind=$('#rk').value==='snack'?'snack':'ret';
