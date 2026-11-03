@@ -525,6 +525,7 @@ const parseKey=k=>{const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,
 const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
 const mondayOf=d=>addDays(d,-((d.getDay()+6)%7));
 const todayKey=()=>dk(new Date());
+const wkOf=k=>dk(mondayOf(parseKey(k)));
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y0)/86400000+1)/7);}
@@ -724,7 +725,8 @@ const saveOk={ls:false,idb:false};
 /* Et flueben hører til en bestemt indkøbsrunde: forsvinder varen fra listen, eller ændres mængden, fjernes fluebenet */
 function pruneChecks(){
   if(!S.shopSig)S.shopSig={};
-  const cur={};shopList().forEach(i=>{cur[i.key]=i.q+'|'+i.u;});
+  const cur={},wks={};upcoming().forEach(p=>{wks[wkOf(p.date)]=1;});Object.keys(S.snacks).forEach(w=>{wks[w]=1;});
+  Object.keys(wks).forEach(w=>shopList(w).forEach(i=>{cur[i.key]=i.q+'|'+i.u;}));
   Object.keys(S.shop).forEach(k=>{
     if(k.indexOf('x-')===0){if(!S.custom.some(c=>'x-'+c.id===k)){delete S.shop[k];}return;}
     if(!(k in cur)){delete S.shop[k];delete S.shopSig[k];return;}
@@ -753,7 +755,7 @@ function load(){
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);}
 
 /* ---------- Beregninger ---------- */
-function upcoming(){const t=todayKey();return Object.values(S.plan).filter(p=>p&&p.dishId&&dish(p.dishId)&&p.date>=t).sort((a,b)=>a.date<b.date?-1:1);}
+function upcoming(wk){const t=todayKey();return Object.values(S.plan).filter(p=>p&&p.dishId&&dish(p.dishId)&&p.date>=t&&(!wk||wkOf(p.date)===wk)).sort((a,b)=>a.date<b.date?-1:1);}
 function ingSet(list){const m=new Map();list.forEach(d=>d&&d.ing.forEach(i=>m.set(i[0],(m.get(i[0])||0)+1)));return m;}
 function ratingInfo(id){
   const v=Object.values(S.ratings).filter(r=>r.dish===id&&r.stars>0);
@@ -763,9 +765,10 @@ function ratingInfo(id){
 }
 function verdict(id){const r=ratingInfo(id);if(!r.n)return 'ny';if(r.avg>=4)return 'fav';if(r.avg<=2.4)return 'nej';return 'ok';}
 function suggest(excludeDate){
-  const others=upcoming().filter(p=>p.date!==excludeDate);
+  const wk=wkOf(excludeDate);
+  const others=upcoming(wk).filter(p=>p.date!==excludeDate);
   const chosen=others.map(p=>dish(p.dishId));
-  const U=ingSet(chosen.concat(snackEntries()));const taken=new Set(chosen.map(d=>d.id));
+  const U=ingSet(chosen.concat(snackEntries(wk)));const taken=new Set(chosen.map(d=>d.id));
   return DISHES.filter(d=>!taken.has(d.id)).map(d=>{
     const names=d.ing.map(i=>i[0]);
     const shared=names.filter(n=>U.has(n)).sort((a,b)=>WOF[b]-WOF[a]);
@@ -800,9 +803,9 @@ function fmtRecipeQty(q,u){
   return n+' '+(r<=1?L[0]:L[1]);
 }
 const slug=s=>s.toLowerCase().replace(/æ/g,'ae').replace(/ø/g,'oe').replace(/å/g,'aa').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-function shopList(){
+function shopList(wk){
   const m=new Map();
-  upcoming().map(p=>dish(p.dishId)).concat(snackEntries()).forEach(d=>{
+  upcoming(wk).map(p=>dish(p.dishId)).concat(snackEntries(wk)).forEach(d=>{
     d.ing.forEach(i=>{
       const mk=i[0]==='mælk'&&i[2]==='dl',iu=mk?'l':i[2],iq=mk?i[1]/10:i[1];
       const k=i[0]+'|'+iu;
@@ -812,7 +815,7 @@ function shopList(){
       m.set(k,e);
     });
   });
-  upcoming().forEach(p=>{
+  upcoming(wk).forEach(p=>{
     const d=dish(p.dishId);
     chosenItems(p.dishId).forEach(it=>{
       const lab=d.n+(d.id==='smoerrebroed'?' (smørrebrød)':' (tilbehør)');
@@ -825,7 +828,7 @@ function shopList(){
       });
     });
   });
-  return Array.from(m.values()).map(e=>({n:e.n,u:e.u,dishes:e.dishes,q:roundQty(e.q,e.u),key:slug(e.n+' '+e.u),cat:CATOF[e.n]||'Kolonial'}));
+  return Array.from(m.values()).map(e=>({n:e.n,u:e.u,dishes:e.dishes,q:roundQty(e.q,e.u),key:slug(e.n+' '+e.u)+(wk?'@'+wk:''),cat:CATOF[e.n]||'Kolonial'}));
 }
 
 /* ---------- Visning ---------- */
@@ -861,7 +864,7 @@ function renderTop(){
   $('#top').innerHTML='<div class="brand">Spisetid</div>'+pill;
 }
 function renderTabs(){
-  const open=shopList().filter(i=>!S.shop[i.key]).length+S.custom.filter(c=>!S.shop['x-'+c.id]).length;
+  const open=shopList(dk(S.week)).filter(i=>!S.shop[i.key]).length+S.custom.filter(c=>!S.shop['x-'+c.id]).length;
   const t=[['plan','Madplan'],['snacks','Snacks'],['shop','Indkøb'],['dishes','Retter']];
   $('#tabs').innerHTML='<div>'+t.map(x=>'<button class="tab'+(S.tab===x[0]?' on':'')+'" data-a="tab" data-t="'+x[0]+'" aria-current="'+(S.tab===x[0])+'">'+ICON[x[0]]+x[1]+(x[0]==='shop'&&open?'<span class="cnt">'+open+'</span>':'')+'</button>').join('')+'</div>';
 }
@@ -882,7 +885,7 @@ function planCard(k){
     h+='<div class="row" style="margin-top:0"><button class="btn" data-a="open" data-date="'+k+'">Vælg ret</button><button class="btn ghost" data-a="surprise" data-date="'+k+'">Overrask mig</button></div>';
     h+='<p class="sugtitle">'+(hasChosen?'Bruger noget af det samme som resten':'Forslag til første ret')+'</p>'+sug.map(s=>sugRow(s,k)).join('');
   }else{
-    const others=upcoming().filter(x=>x.date!==k).map(x=>dish(x.dishId));
+    const others=upcoming(wkOf(k)).filter(x=>x.date!==k).map(x=>dish(x.dishId));
     const U=ingSet(others);
     const shared=d.ing.map(i=>i[0]).filter(n=>U.has(n)).sort((a,b)=>WOF[b]-WOF[a]);
     h+='<div class="dishline">'+tile(d)+'<div style="min-width:0"><h4>'+d.n+'</h4>'+facts(d)+infoHtml(d)+'<span class="meta">'+famLine(d.id)+'</span>'+(shared.length?'<span class="shared">Går igen i ugen: '+shared.join(', ')+'</span>':'')+'</div></div>';
@@ -931,9 +934,10 @@ function catOfCustom(t){
   return 'Kolonial';
 }
 function viewShopPlan(){
-  const items=shopList(),n=upcoming().length,ns=snackEntries().length;
+  const wk=dk(S.week),nav=weekNavHtml();
+  const items=shopList(wk),n=upcoming(wk).length,ns=snackEntries(wk).length;
   const cust=S.custom.map(c=>({n:c.t,q:c.q,key:'x-'+c.id,id:c.id,custom:true,cat:catOfCustom(c.t),dishes:[]}));
-  if(!items.length&&!cust.length)return '<div class="empty-box"><h3>Ingen retter eller snacks valgt</h3><p>Vælg retter i Madplan og snacks i Snacks, så samles varerne her.</p></div>';
+  if(!items.length&&!cust.length)return nav+'<div class="empty-box"><h3>Ingen retter eller snacks i uge '+isoWeek(S.week)+'</h3><p>Vælg retter i Madplan og snacks i Snacks, så samles varerne her.</p></div>';
   const multi=items.filter(i=>i.dishes.length>1).length;
   const sum=!items.length?'':'<div class="sumbar">'+items.length+' varer til '+[n?n+(n===1?' ret':' retter'):'',ns?ns+(ns===1?' snack':' snacks'):''].filter(Boolean).join(' og ')+'<span>'+(multi?multi+(multi===1?' vare bruges':' varer bruges')+' i flere retter, så I køber ind til to på én gang.':'Vælg flere retter med de samme varer for at spare på indkøbet.')+' Mængderne passer til '+S.people+' personer.</span></div>';
   let h='';
@@ -952,12 +956,12 @@ function viewShopPlan(){
     h+='</div>';
     (all?doneGroups:openGroups).push(h);
   });
-  return openGroups.join('')+doneGroups.join('')+sum+btns;
+  return nav+openGroups.join('')+doneGroups.join('')+sum+btns;
 }
 
-function snackEntries(){
+function snackEntries(wk){
   const cur=dk(mondayOf(new Date())),out=[];
-  Object.keys(S.snacks).sort().forEach(w=>{if(w>=cur)Object.keys(S.snacks[w]).forEach(id=>{if(SBY[id])out.push(SBY[id]);});});
+  Object.keys(S.snacks).sort().forEach(w=>{if(w>=cur&&(!wk||w===wk))Object.keys(S.snacks[w]).forEach(id=>{if(SBY[id])out.push(SBY[id]);});});
   return out;
 }
 function weekRangeTxt(w0){const w6=addDays(w0,6);return w0.getMonth()===w6.getMonth()?w0.getDate()+'.–'+w6.getDate()+'. '+MON[w6.getMonth()]:w0.getDate()+'. '+MON[w0.getMonth()]+'–'+w6.getDate()+'. '+MON[w6.getMonth()];}
@@ -1184,7 +1188,7 @@ function clearSides(dishId,exceptDate){
 function setDay(date,dishId){clearSides(S.plan[date]&&S.plan[date].dishId,date);clearSides(dishId,date);S.plan[date]={date:date,dishId:dishId};persist(()=>db.doc('plan/'+date).set({date:date,dishId:dishId}));}
 function removeDay(date){clearSides(S.plan[date]&&S.plan[date].dishId,date);delete S.plan[date];persist(()=>db.doc('plan/'+date).delete());}
 function doPick(date,id){
-  const others=upcoming().filter(p=>p.date!==date);
+  const others=upcoming(wkOf(date)).filter(p=>p.date!==date);
   const U=ingSet(others.map(p=>dish(p.dishId)));
   const sh=dish(id).ing.filter(i=>U.has(i[0])).length;
   setDay(date,id);
@@ -1343,8 +1347,8 @@ const A={
   close(){closeSheet();},
   rec(el){S.sheet=null;S.rec=el.dataset.dish;renderSheet();},
   copyplan(){
-    const l=upcoming();
-    if(!l.length){toast('Der er ingen retter i planen endnu');return;}
+    const l=upcoming(dk(S.week));
+    if(!l.length){toast('Der er ingen retter i planen for denne uge endnu');return;}
     const t='Madplan\n'+l.map(p=>cap(longDate(p.date))+': '+dish(p.dishId).n+(S.sides[p.dishId]&&S.sides[p.dishId].length?' (med '+S.sides[p.dishId].map(shortN).join(', ')+')':'')).join('\n');
     const ok=()=>toast('Menuen er kopieret. Send den i en besked.');
     const fail=()=>toast('Kunne ikke kopiere. Prøv igen.');
@@ -1375,7 +1379,7 @@ const A={
     persist(async()=>{for(const k of keys)await db.doc('shop/'+k).delete();});
   },
   copy(){
-    const items=shopList();let t='Indkøbsliste (til '+S.people+' personer)\n';
+    const items=shopList(dk(S.week));let t='Indkøbsliste, uge '+isoWeek(S.week)+' (til '+S.people+' personer)\n';
     const cu=S.custom.filter(c=>!S.shop['x-'+c.id]).map(c=>({n:c.t,cat:catOfCustom(c.t),line:'- '+(c.q?c.q+' ':'')+c.t}));
     CATORDER.forEach(c=>{const g=items.filter(i=>i.cat===c&&!S.shop[i.key]).map(i=>'- '+fmtQty(i.q,i.u)+' '+i.n).concat(cu.filter(x=>x.cat===c).map(x=>x.line));if(g.length){t+='\n'+c+'\n'+g.join('\n')+'\n';}});
     const ok=()=>toast('Listen er kopieret');
