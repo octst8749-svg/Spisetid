@@ -208,7 +208,8 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-03-a';
+const APP_VERSION='2026-11-03-1305';
+const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
 window.addEventListener('error',function(e){logErr((e.message||'fejl')+' ('+String(e.filename||'').split('/').pop()+':'+e.lineno+')');});
@@ -1094,7 +1095,7 @@ function dishCards(){
 
 function render(){
   renderTop();
-  $('#main').innerHTML=(S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes())+'<div class="row" style="margin-top:26px;justify-content:center"><button class="btn ghost" data-a="reportopen" style="min-height:36px;padding:6px 14px;font-size:14px">⚠ Fejlmeld</button></div>';
+  $('#main').innerHTML=(S.tab==='plan'?viewPlan():S.tab==='snacks'?viewSnacks():S.tab==='shop'?viewShop():viewDishes())+'<div class="row" style="margin-top:26px;justify-content:center"><button class="btn ghost" data-a="reportopen" style="min-height:36px;padding:6px 14px;font-size:14px">⚠ Fejlmeld</button></div><p class="meta" style="text-align:center;margin:10px 0 0;font-size:13px;opacity:.7">'+versionTxt()+'</p>';
   renderTabs();
   if(S.sheet)renderSheetList();
   if(S.snackSheet)renderSnackList();
