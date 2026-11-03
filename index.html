@@ -1161,8 +1161,14 @@ function renderSnackList(){
 }
 
 /* ---------- Handlinger ---------- */
-function setDay(date,dishId){S.plan[date]={date:date,dishId:dishId};persist(()=>db.doc('plan/'+date).set({date:date,dishId:dishId}));}
-function removeDay(date){delete S.plan[date];persist(()=>db.doc('plan/'+date).delete());}
+/* Tilbehør vælges hver gang en ret lægges i madplanen: valget nulstilles, når retten sættes på eller tages af en dag */
+function clearSides(dishId,exceptDate){
+  if(!dishId||!S.sides[dishId])return;
+  if(Object.keys(S.plan).some(k=>k!==exceptDate&&S.plan[k]&&S.plan[k].dishId===dishId))return;
+  delete S.sides[dishId];
+}
+function setDay(date,dishId){clearSides(S.plan[date]&&S.plan[date].dishId,date);clearSides(dishId,date);S.plan[date]={date:date,dishId:dishId};persist(()=>db.doc('plan/'+date).set({date:date,dishId:dishId}));}
+function removeDay(date){clearSides(S.plan[date]&&S.plan[date].dishId,date);delete S.plan[date];persist(()=>db.doc('plan/'+date).delete());}
 function doPick(date,id){
   const others=upcoming().filter(p=>p.date!==date);
   const U=ingSet(others.map(p=>dish(p.dishId)));
