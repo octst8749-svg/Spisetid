@@ -226,7 +226,7 @@ async function ocrImage(file){
     const m2=$('#rmsg');if(m2)m2.textContent+=' Tekstgenkendelse kan tage fejl, så tjek mængder og trin.';
   }catch(e){const el=$('#rmsg');if(el)el.textContent='Billedet kunne ikke læses. Prøv et skarpere billede.';}
 }
-const APP_VERSION='2026-11-03-1400';
+const APP_VERSION='2026-11-03-1325';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
