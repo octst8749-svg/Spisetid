@@ -925,8 +925,18 @@ function viewSnacks(){
   });
   return h+'<div class="row"><button class="btn ghost" data-a="snackopen">Tilføj snack</button></div>';
 }
+const COMMON_ITEMS=['Mælk','Letmælk','Minimælk','Sødmælk','Piskefløde','Madlavningsfløde','Smør','Letsmør','Margarine','Æg','Yoghurt naturel','Skyr','Cheasy','Hytteost','Flødeost','Smøreost','Revet ost','Mozzarella','Feta','Parmesan','Skiveost','Cheddar','Creme fraiche','Husholdningsost','Kefir','Tykmælk','Cremefraiche 18%','Rugbrød','Franskbrød','Toastbrød','Pitabrød','Tortillas','Burgerboller','Hotdogbrød','Rundstykker','Knækbrød','Rasp','Havregryn','Mel','Hvedemel','Fuldkornsmel','Sukker','Flormelis','Brun farin','Bagepulver','Natron','Gær','Vaniljesukker','Kakao','Mørk chokolade','Chokolade','Honning','Marmelade','Jordbærsyltetøj','Nutella','Peanutbutter','Müsli','Cornflakes','Cheerios','Pasta','Spaghetti','Makaroni','Penne','Fusilli','Lasagneplader','Ris','Basmatiris','Nudler','Couscous','Bulgur','Kartofler','Søde kartofler','Gulerødder','Løg','Rødløg','Hvidløg','Porre','Agurk','Tomater','Cherrytomater','Iceberg','Spinat','Rucola','Hovedsalat','Peberfrugt','Broccoli','Blomkål','Squash','Aubergine','Champignon','Majs','Ærter','Bønner','Hvidkål','Rødkål','Spidskål','Rødbeder','Radiser','Selleri','Persille','Dild','Purløg','Basilikum','Timian','Rosmarin','Ingefær','Citron','Lime','Appelsin','Æbler','Pærer','Bananer','Vindruer','Jordbær','Blåbær','Hindbær','Mandariner','Kiwi','Ananas','Melon','Avocado','Hakket oksekød','Hakket svinekød','Hakket kylling','Kyllingebryst','Kyllingelår','Hel kylling','Flæskesteg','Medisterpølse','Pølser','Bacon','Skinke','Salami','Leverpostej','Rullepølse','Kødpølse','Hamburgerryg','Laks','Laksfilet','Torskefilet','Rødspættefilet','Fiskefrikadeller','Fiskefilet','Tun på dåse','Makrel i tomat','Rejer','Sild','Hakkede tomater','Tomatpuré','Flåede tomater','Ketchup','Sennep','Remoulade','Mayonnaise','Pesto','Sojasovs','Tabasco','Dressing','Eddike','Olivenolie','Rapsolie','Solsikkeolie','Salt','Peber','Paprika','Karry','Kanel','Oregano','Spidskommen','Chiliflager','Muskatnød','Laurbærblade','Bouillonterninger','Hønsebouillon','Oksebouillon','Fond','Kokosmælk','Kidneybønner','Kikærter','Linser','Hvide bønner','Majs på dåse','Ærter på dåse','Rosiner','Nødder','Mandler','Solsikkekerner','Græskarkerner','Chips','Popcorn','Kiks','Kage','Is','Frosne grøntsager','Frosne ærter','Frosne bær','Pommes frites','Pizza','Frossen fisk','Juice','Æblejuice','Appelsinjuice','Sodavand','Danskvand','Saftevand','Cacao','Kaffe','Te','Kaffefiltre','Toiletpapir','Køkkenrulle','Opvaskemiddel','Opvasketabs','Vaskepulver','Skyllemiddel','Håndsæbe','Shampoo','Tandpasta','Tandbørster','Deodorant','Bleer','Vådservietter','Hundemad','Kattemad','Bagepapir','Alufolie','Fryseposer','Affaldsposer','Rengøringsmiddel','Batterier','Pærer til lamper','Servietter','Tændstikker','Stearinlys'];
+function varerOptions(){
+  const seen={},out=[];
+  const add=n=>{n=String(n||'').trim();if(!n)return;const k=n.toLowerCase();if(seen[k])return;seen[k]=1;out.push(n.charAt(0).toUpperCase()+n.slice(1));};
+  COMMON_ITEMS.forEach(add);
+  DISHES.concat(SNACKS).forEach(d=>d.ing.forEach(i=>add(i[0])));
+  S.custom.forEach(c=>add(c.t));
+  out.sort((a,b)=>a.localeCompare(b,'da'));
+  return out.map(n=>'<option value="'+esc(n)+'">').join('');
+}
 function viewShop(){
-  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><input id="addname" class="search" type="text" maxlength="60" placeholder="Tilføj vare, fx toiletpapir"><label class="sr" for="addqty">Antal</label><input id="addqty" class="search qtyin" type="text" maxlength="20" placeholder="Antal"><button class="btn" type="submit">Tilføj</button></form>';
+  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><input id="addname" class="search" type="text" maxlength="60" list="varer" placeholder="Tilføj vare, fx toiletpapir"><datalist id="varer">'+varerOptions()+'</datalist><label class="sr" for="addqty">Antal</label><input id="addqty" class="search qtyin" type="text" maxlength="20" placeholder="Antal"><button class="btn" type="submit">Tilføj</button></form>';
   if(S.custom.length){
     h+='<div class="group" style="margin-top:0"><h3>Egne varer</h3>'+S.custom.map(c=>{
       const k='x-'+c.id,done=!!S.shop[k];
@@ -941,8 +951,16 @@ function viewDishes(){
   let h='<div class="chips" role="group" aria-label="Type"><button class="chip'+(S.kind==='retter'?' on':'')+'" data-a="kind" data-k="retter" aria-pressed="'+(S.kind==='retter')+'">Retter</button><button class="chip'+(S.kind==='snacks'?' on':'')+'" data-a="kind" data-k="snacks" aria-pressed="'+(S.kind==='snacks')+'">Snacks</button></div>';
   h+='<div class="chips" role="group" aria-label="Filter">'+F.map(f=>'<button class="chip'+(S.filter===f[0]?' on':'')+'" data-a="filter" data-f="'+f[0]+'" aria-pressed="'+(S.filter===f[0])+'">'+f[1]+'</button>').join('')+'</div><p class="hint">Bladene viser, hvor sund retten er, og tiden er et skøn. Begge dele er vores vurdering og ikke en næringsberegning.</p>';
   h+='<div class="row" style="margin-top:0"><button class="btn ghost" data-a="addopen">Tilføj egen opskrift</button></div>';
-  const list=base.filter(d=>S.filter==='alle'||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
-  if(!list.length)return h+'<p class="empty">Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.</p>';
+  h+='<label class="sr" for="dq">Søg</label><input id="dq" class="search" type="search" placeholder="Søg efter '+(S.kind==='snacks'?'snack':'ret')+' eller ingrediens" autocomplete="off" value="'+esc(S.dq||'')+'" style="margin-top:10px">';
+  return h+'<div id="dlist">'+dishCards()+'</div>';
+}
+const norm=t=>String(t).toLowerCase();
+function dishCards(){
+  let h='';
+  const base=S.kind==='snacks'?SNACKS:DISHES;
+  const dq=norm(S.dq||'');
+  const list=base.filter(d=>!dq||norm(d.n+' '+(DESC[d.id]||'')+' '+d.ing.map(i=>i[0]).join(' ')).indexOf(dq)>=0).filter(d=>S.filter==='alle'||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
+  if(!list.length)return h+'<p class="empty">'+(dq?'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' passer til søgningen.':'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.')+'</p>';
   list.forEach(d=>{
     const r=ratingInfo(d.id);
     h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(d.mine?'<span class="badge" style="background:var(--sun-soft);color:var(--sun-ink)">Egen</span>':'')+'</span>'+facts(d)+''+infoHtml(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<div class="row" style="margin-top:6px"><button class="btn" data-a="planopen" data-dish="'+d.id+'">'+(S.kind==='snacks'?'Føj til ugens snacks':'Føj til madplan')+'</button></div><button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button>';
@@ -1260,7 +1278,7 @@ document.addEventListener('click',e=>{
   if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el);
 });
-document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&anySheet())closeSheet();});
 document.addEventListener('submit',e=>{
   if(!e.target||e.target.id!=='addform')return;
