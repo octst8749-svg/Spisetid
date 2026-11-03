@@ -429,7 +429,7 @@ function sideItems(id){
   };
   run(NEEDS[id],MEATMAP,'kød');run(SIDE[id],SIDEMAP,'tilbehør');
   if(NOBASE.indexOf(id)<0)BASEVEG.forEach(b=>{if(!out.some(o=>o.n===b[0]))out.push({n:b[0],q:b[1],u:b[2],kind:'tilbehør'});});
-  SALADS.forEach(x=>out.push(x));
+  if(NOBASE.indexOf(id)<0)SALADS.forEach(x=>out.push(x));
   return out;
 }
 
