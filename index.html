@@ -169,6 +169,8 @@ h1,h2,h3,p{margin:0}
 .sugg:empty{display:none}
 .sugg button{text-align:left;font:16px var(--f-body);color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:12px 14px;min-height:44px;cursor:pointer}
 .sugg button:first-child{border-top:0}
+.sugg button{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.sugg small{color:#6b7a76;font-size:14px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .crow{padding:0;gap:4px}
 .crow-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:10px 4px}
@@ -939,6 +941,43 @@ function varerOptions(){
   out.sort((a,b)=>a.localeCompare(b,'da'));
   return out;
 }
+/* Fornuftig standardmængde for hver slags vare, så feltet Antal er udfyldt med noget, der passer til produktet */
+const QTYRULES=[
+ [/toiletpapir|køkkenrulle|bleer|vådservietter|servietter|fryseposer|batterier|vaskepulver|opvasketabs|kaffefiltre|kiks|^kage$|tændstikker/,'1 pk'],
+ [/alufolie|bagepapir|affaldsposer/,'1 rulle'],
+ [/opvaskemiddel|skyllemiddel|håndsæbe|shampoo|rengøringsmiddel/,'1 fl.'],
+ [/tandpasta|tandbørster|deodorant|stearinlys|pærer til lamper/,'1 stk'],
+ [/hundemad|kattemad/,'1 pose'],
+ [/tomatpuré/,'1 tube'],
+ [/hakkede tomater|flåede tomater|kidneybønner|kikærter|linser|hvide bønner|majs på dåse|ærter på dåse|^majs$|kokosmælk|tun på dåse|makrel/,'1 dåse'],
+ [/sodavand|danskvand|saftevand|juice|^is$|letmælk|minimælk|sødmælk|^mælk$|kefir|tykmælk/,'1 l'],
+ [/fløde/,'2 dl'],
+ [/olie|eddike|ketchup|sennep|remoulade|mayonnaise|dressing|sojasovs|tabasco|fond/,'1 fl.'],
+ [/^æg$/,'10 stk'],
+ [/smør|margarine|ost|feta|mozzarella|parmesan|flødeost|smøreost|cheddar|skyr|cheasy|hytteost|creme fraiche|yoghurt/,'1 pk'],
+ [/rundstykker/,'8 stk'],
+ [/rugbrød|franskbrød|toastbrød|pitabrød|tortillas|burgerboller|hotdogbrød|knækbrød|^pizza$/,'1 pk'],
+ [/kartofler/,'1 kg'],
+ [/gulerødder|løg|rødløg|rødbeder|squash|aubergine|champignon|tomater|cherrytomater|spinat|rucola|porre|hvidkål|rødkål|spidskål|blomkål|mandariner|appelsin|vindruer|jordbær|blåbær|hindbær|selleri/,'500 g'],
+ [/agurk|iceberg|hovedsalat|broccoli|peberfrugt|avocado|ananas|melon|citron|lime|kiwi|radiser/,'2 stk'],
+ [/æbler|pærer|bananer|^banan$/,'6 stk'],
+ [/persille|dild|purløg|basilikum|timian|rosmarin|ingefær/,'1 bundt'],
+ [/hel kylling/,'1 stk'],
+ [/hakket|kyllingebryst|kyllingelår|flæskesteg|laks|torsk|rødspætte|fiskefilet|fiskefrikadeller|rejer/,'500 g'],
+ [/pølser|medister|bacon|skinke|salami|leverpostej|rullepølse|kødpølse|hamburgerryg|roastbeef/,'1 pk'],
+ [/mel|sukker|flormelis|brun farin|havregryn|rasp|pasta|spaghetti|makaroni|penne|fusilli|lasagne|ris|nudler|couscous|bulgur|müsli|cornflakes|cheerios|kaffe|^te$/,'1 pk'],
+ [/salt|peber|paprika|karry|kanel|oregano|spidskommen|chili|muskatnød|laurbær|kardemomme|bagepulver|natron|vaniljesukker|gær|kakao|cacao|bouillon/,'1 pk'],
+ [/honning|marmelade|syltetøj|nutella|peanutbutter|pesto|oliven|asier|sild/,'1 glas'],
+ [/chips|popcorn|nødder|mandler|kerner|rosiner|frosne|pommes|chokolade/,'1 pose'],
+ [/frossen fisk/,'1 pk']
+];
+function defaultQty(name){
+  const n=norm(name).trim();
+  for(let i=0;i<QTYRULES.length;i++)if(QTYRULES[i][0].test(n))return QTYRULES[i][1];
+  const hit=DISHES.concat(SNACKS).map(d=>d.ing.find(x=>norm(x[0])===n)).find(Boolean);
+  if(hit){const u=hit[2];return u==='g'?'500 g':u==='dl'?'1 fl.':'1 '+u;}
+  return '1 stk';
+}
 let VARER=null;
 function suggestVarer(q){
   q=norm(q).trim();if(!q)return[];
@@ -1239,7 +1278,7 @@ const A={
       applySnap(r);persist();closeSheet();render();toast('Madplanen er hentet');
     }catch(e){toast('Koden kan ikke læses. Tjek, at hele koden er indsat.');}
   },
-  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
+  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}const qi=$('#addqty');if(qi&&!qi.value)qi.value=el.dataset.q||'';const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
   customdel(el){S.custom=S.custom.filter(c=>c.id!==el.dataset.id);delete S.shop['x-'+el.dataset.id];persist();render();},
   open(el){S.sheet=el.dataset.date;S.q='';renderSheet();},
   close(){closeSheet();},
@@ -1291,7 +1330,7 @@ document.addEventListener('click',e=>{
   if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el);
 });
-document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){const b=$('#sugg');if(b)b.innerHTML=suggestVarer(e.target.value).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'">'+esc(n)+'</button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){const b=$('#sugg');if(b)b.innerHTML=suggestVarer(e.target.value).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&anySheet())closeSheet();});
 document.addEventListener('submit',e=>{
   if(!e.target||e.target.id!=='addform')return;
