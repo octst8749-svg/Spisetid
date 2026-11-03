@@ -1065,7 +1065,7 @@ function viewShop(){
   return h+viewShopPlan();
 }
 function viewDishes(){
-  const F=[['alle','Alle'],['sund','Sunde'],['fav','Favoritter'],['ny','Ikke prøvet'],['nej','Ikke igen']];
+  const F=[['alle','Alle'],['sund','Sunde'],['fav','Favoritter'],['ny','Ikke prøvet'],['nej','Ikke igen'],['egne','Egne']];
   const base=S.kind==='snacks'?SNACKS:DISHES;
   let h='<div class="chips" role="group" aria-label="Type"><button class="chip'+(S.kind==='retter'?' on':'')+'" data-a="kind" data-k="retter" aria-pressed="'+(S.kind==='retter')+'">Retter</button><button class="chip'+(S.kind==='snacks'?' on':'')+'" data-a="kind" data-k="snacks" aria-pressed="'+(S.kind==='snacks')+'">Snacks</button></div>';
   h+='<div class="chips" role="group" aria-label="Filter">'+F.map(f=>'<button class="chip'+(S.filter===f[0]?' on':'')+'" data-a="filter" data-f="'+f[0]+'" aria-pressed="'+(S.filter===f[0])+'">'+f[1]+'</button>').join('')+'</div><p class="hint">Bladene viser, hvor sund retten er, og tiden er et skøn. Begge dele er vores vurdering og ikke en næringsberegning.</p>';
@@ -1078,8 +1078,8 @@ function dishCards(){
   let h='';
   const base=S.kind==='snacks'?SNACKS:DISHES;
   const dq=norm(S.dq||'');
-  const list=base.filter(d=>!dq||norm(d.n+' '+(DESC[d.id]||'')+' '+d.ing.map(i=>i[0]).join(' ')).indexOf(dq)>=0).filter(d=>S.filter==='alle'||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
-  if(!list.length)return h+'<p class="empty">'+(dq?'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' passer til søgningen.':'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.')+'</p>';
+  const list=base.filter(d=>!dq||norm(d.n+' '+(DESC[d.id]||'')+' '+d.ing.map(i=>i[0]).join(' ')).indexOf(dq)>=0).filter(d=>S.filter==='alle'||(S.filter==='egne'&&d.mine)||(S.filter==='sund'&&HEALTH[d.id]===3)||verdict(d.id)===S.filter||(S.filter==='ny'&&verdict(d.id)==='ny')).sort((a,b)=>a.n.localeCompare(b.n,'da'));
+  if(!list.length)return h+'<p class="empty">'+(dq?'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' passer til søgningen.':S.filter==='egne'?'Du har ikke tilføjet egne '+(S.kind==='snacks'?'snacks':'retter')+' endnu. Tryk på Tilføj egen opskrift.':'Ingen '+(S.kind==='snacks'?'snacks':'retter')+' her endnu. Giv stjerner til dem, I har smagt.')+'</p>';
   list.forEach(d=>{
     const r=ratingInfo(d.id);
     h+='<article class="drow">'+tile(d)+'<div class="dmain"><span class="dname">'+d.n+badge(verdict(d.id))+(d.mine?'<span class="badge" style="background:var(--sun-soft);color:var(--sun-ink)">Egen</span>':'')+'</span>'+facts(d)+''+infoHtml(d)+'<span class="dmeta">'+famLine(d.id)+'</span><span class="ings">'+d.ing.map(i=>i[0]).join(', ')+'</span>'+stars(d.id,r.mine)+'<div class="row" style="margin-top:6px"><button class="btn" data-a="planopen" data-dish="'+d.id+'">'+(S.kind==='snacks'?'Føj til ugens snacks':'Føj til madplan')+'</button></div><button class="link" data-a="rec" data-dish="'+d.id+'" style="display:block;padding-left:0">Se opskrift</button>';
