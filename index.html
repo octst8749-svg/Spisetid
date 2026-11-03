@@ -978,6 +978,15 @@ function defaultQty(name){
   if(hit){const u=hit[2];return u==='g'?'500 g':u==='dl'?'1 fl.':'1 '+u;}
   return '1 stk';
 }
+const QTYSETS={'stk':[1,2,3,4,5,6,8,10,12,15,20],'pk':[1,2,3,4,5,6],'g':[100,150,200,250,300,400,500,600,750,800,1000],'kg':[0.5,1,1.5,2,3,5],'l':[0.5,1,1.5,2,3,6],'dl':[1,2,3,5],'dåse':[1,2,3,4,6],'fl.':[1,2,3],'bundt':[1,2,3],'rulle':[1,2,3],'pose':[1,2,3,4],'glas':[1,2,3],'tube':[1,2]};
+function qtyOptions(def){
+  const m=/^([\d.,]+)\s+(.+)$/.exec(def||'');
+  if(!m){return '<option value="">Antal</option>'+['1 stk','2 stk','3 stk','4 stk','5 stk','1 pk','2 pk','3 pk','500 g','1 kg','1 l','2 l'].map(x=>'<option>'+x+'</option>').join('');}
+  const unit=m[2],want=Number(m[1].replace(',','.')),list=(QTYSETS[unit]||[1,2,3,4,5]).slice();
+  if(list.indexOf(want)<0){list.push(want);list.sort((a,b)=>a-b);}
+  return '<option value="">Antal</option>'+list.map(n=>{const t=String(n).replace('.',',')+' '+unit;return '<option'+(n===want?' selected':'')+'>'+t+'</option>';}).join('');
+}
+function setQtyFor(name){const q=$('#addqty');if(!q)return;q.innerHTML=qtyOptions(defaultQty(name));}
 let VARER=null;
 function suggestVarer(q){
   q=norm(q).trim();if(!q)return[];
@@ -987,7 +996,7 @@ function suggestVarer(q){
   return st.concat(ct).filter(n=>own.indexOf(norm(n))<0||true).slice(0,6);
 }
 function viewShop(){
-  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><input id="addname" class="search" type="text" maxlength="60" placeholder="Tilføj vare, fx toiletpapir"><label class="sr" for="addqty">Antal</label><input id="addqty" class="search qtyin" type="text" maxlength="20" placeholder="Antal"><button class="btn" type="submit">Tilføj</button></form><div id="sugg" class="sugg" role="listbox" aria-label="Forslag"></div>';
+  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><input id="addname" class="search" type="text" maxlength="60" placeholder="Tilføj vare, fx toiletpapir"><label class="sr" for="addqty">Antal</label><select id="addqty" class="search qtyin">'+qtyOptions('')+'</select><button class="btn" type="submit">Tilføj</button></form><div id="sugg" class="sugg" role="listbox" aria-label="Forslag"></div>';
   if(S.custom.length){
     h+='<div class="group" style="margin-top:0"><h3>Egne varer</h3>'+S.custom.map(c=>{
       const k='x-'+c.id,done=!!S.shop[k];
@@ -1278,7 +1287,7 @@ const A={
       applySnap(r);persist();closeSheet();render();toast('Madplanen er hentet');
     }catch(e){toast('Koden kan ikke læses. Tjek, at hele koden er indsat.');}
   },
-  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}const qi=$('#addqty');if(qi&&!qi.value)qi.value=el.dataset.q||'';const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
+  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}setQtyFor(el.dataset.v);const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
   customdel(el){S.custom=S.custom.filter(c=>c.id!==el.dataset.id);delete S.shop['x-'+el.dataset.id];persist();render();},
   open(el){S.sheet=el.dataset.date;S.q='';renderSheet();},
   close(){closeSheet();},
@@ -1330,7 +1339,7 @@ document.addEventListener('click',e=>{
   if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el);
 });
-document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){const b=$('#sugg');if(b)b.innerHTML=suggestVarer(e.target.value).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){if(VARER&&VARER.some(n=>norm(n)===norm(e.target.value).trim()))setQtyFor(e.target.value);const b=$('#sugg');if(b)b.innerHTML=suggestVarer(e.target.value).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&anySheet())closeSheet();});
 document.addEventListener('submit',e=>{
   if(!e.target||e.target.id!=='addform')return;
