@@ -712,6 +712,7 @@ function applySnap(r){
   S.plan=r.plan||{};S.ratings=r.ratings||{};S.shop=r.shop||{};S.snacks=r.snacks||{};
   S.custom=Array.isArray(r.custom)?r.custom:[];
   S.custom=S.custom.filter(c=>{if(c&&c.from){delete S.shop['x-'+c.id];return false;}return true;});
+  S.custom.forEach(c=>{if(c&&!c.w)c.w=dk(mondayOf(new Date()));});
   S.mine=Array.isArray(r.mine)?r.mine.filter(m=>m&&m.id&&m.n&&Array.isArray(m.ing)):[];
   registerMine(S.mine);
   S.sides=r.sides&&typeof r.sides==='object'&&!Array.isArray(r.sides)?r.sides:{};
@@ -723,6 +724,8 @@ function idbPut(v){return idbOpen().then(db=>new Promise((res,rej)=>{const tx=db
 function idbGet(){return idbOpen().then(db=>new Promise((res,rej)=>{const q=db.transaction('kv').objectStore('kv').get(KEY);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);}));}
 const saveOk={ls:false,idb:false};
 /* Et flueben hører til en bestemt indkøbsrunde: forsvinder varen fra listen, eller ændres mængden, fjernes fluebenet */
+/* Egne varer hører til den uge, de er skrevet ind i. Er de ikke krydset af, følger de med til de næste uger */
+function customFor(wk){return S.custom.filter(c=>c.w===wk||(c.w<wk&&!S.shop['x-'+c.id]));}
 function pruneChecks(){
   if(!S.shopSig)S.shopSig={};
   const cur={},wks={};upcoming().forEach(p=>{wks[wkOf(p.date)]=1;});Object.keys(S.snacks).forEach(w=>{wks[w]=1;});
@@ -864,7 +867,7 @@ function renderTop(){
   $('#top').innerHTML='<div class="brand">Spisetid</div>'+pill;
 }
 function renderTabs(){
-  const open=shopList(dk(S.week)).filter(i=>!S.shop[i.key]).length+S.custom.filter(c=>!S.shop['x-'+c.id]).length;
+  const open=shopList(dk(S.week)).filter(i=>!S.shop[i.key]).length+customFor(dk(S.week)).filter(c=>!S.shop['x-'+c.id]).length;
   const t=[['plan','Madplan'],['snacks','Snacks'],['shop','Indkøb'],['dishes','Retter']];
   $('#tabs').innerHTML='<div>'+t.map(x=>'<button class="tab'+(S.tab===x[0]?' on':'')+'" data-a="tab" data-t="'+x[0]+'" aria-current="'+(S.tab===x[0])+'">'+ICON[x[0]]+x[1]+(x[0]==='shop'&&open?'<span class="cnt">'+open+'</span>':'')+'</button>').join('')+'</div>';
 }
@@ -936,7 +939,7 @@ function catOfCustom(t){
 function viewShopPlan(){
   const wk=dk(S.week),nav=weekNavHtml();
   const items=shopList(wk),n=upcoming(wk).length,ns=snackEntries(wk).length;
-  const cust=S.custom.map(c=>({n:c.t,q:c.q,key:'x-'+c.id,id:c.id,custom:true,cat:catOfCustom(c.t),dishes:[]}));
+  const cust=customFor(wk).map(c=>({n:c.t,q:c.q,key:'x-'+c.id,id:c.id,custom:true,cat:catOfCustom(c.t),dishes:[]}));
   if(!items.length&&!cust.length)return nav+'<div class="empty-box"><h3>Ingen retter eller snacks i uge '+isoWeek(S.week)+'</h3><p>Vælg retter i Madplan og snacks i Snacks, så samles varerne her.</p></div>';
   const multi=items.filter(i=>i.dishes.length>1).length;
   const sum=!items.length?'':'<div class="sumbar">'+items.length+' varer til '+[n?n+(n===1?' ret':' retter'):'',ns?ns+(ns===1?' snack':' snacks'):''].filter(Boolean).join(' og ')+'<span>'+(multi?multi+(multi===1?' vare bruges':' varer bruges')+' i flere retter, så I køber ind til to på én gang.':'Vælg flere retter med de samme varer for at spare på indkøbet.')+' Mængderne passer til '+S.people+' personer.</span></div>';
@@ -1380,7 +1383,7 @@ const A={
   },
   copy(){
     const items=shopList(dk(S.week));let t='Indkøbsliste, uge '+isoWeek(S.week)+' (til '+S.people+' personer)\n';
-    const cu=S.custom.filter(c=>!S.shop['x-'+c.id]).map(c=>({n:c.t,cat:catOfCustom(c.t),line:'- '+(c.q?c.q+' ':'')+c.t}));
+    const cu=customFor(dk(S.week)).filter(c=>!S.shop['x-'+c.id]).map(c=>({n:c.t,cat:catOfCustom(c.t),line:'- '+(c.q?c.q+' ':'')+c.t}));
     CATORDER.forEach(c=>{const g=items.filter(i=>i.cat===c&&!S.shop[i.key]).map(i=>'- '+fmtQty(i.q,i.u)+' '+i.n).concat(cu.filter(x=>x.cat===c).map(x=>x.line));if(g.length){t+='\n'+c+'\n'+g.join('\n')+'\n';}});
     const ok=()=>toast('Listen er kopieret');
     const fail=()=>toast('Kunne ikke kopiere. Hold fingeren på listen og markér teksten.');
@@ -1399,7 +1402,7 @@ document.addEventListener('submit',e=>{
   e.preventDefault();
   const t=($('#addname').value||'').trim().slice(0,60),q=($('#addqty').value||'').trim().slice(0,20);
   if(!t){toast('Skriv, hvad der skal købes');return;}
-  S.custom.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),t:t,q:q});
+  S.custom.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),t:t,q:q,w:dk(S.week)});
   VARER=null;persist();render();toast('Tilføjet til listen');
 });
 
