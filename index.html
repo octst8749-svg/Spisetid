@@ -169,6 +169,7 @@ h1,h2,h3,p{margin:0}
 .sugg:empty{display:none}
 .sugg button{text-align:left;font:16px var(--f-body);color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:12px 14px;min-height:44px;cursor:pointer}
 .sugg button:first-child{border-top:0}
+.group.alldone h3{opacity:.55}
 .sugg button{display:flex;justify-content:space-between;gap:12px;align-items:center}
 .sugg small{color:#6b7a76;font-size:14px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -923,18 +924,21 @@ function viewShopPlan(){
   const sum=!items.length?'':'<div class="sumbar">'+items.length+' varer til '+[n?n+(n===1?' ret':' retter'):'',ns?ns+(ns===1?' snack':' snacks'):''].filter(Boolean).join(' og ')+'<span>'+(multi?multi+(multi===1?' vare bruges':' varer bruges')+' i flere retter, så I køber ind til to på én gang.':'Vælg flere retter med de samme varer for at spare på indkøbet.')+' Mængderne passer til '+S.people+' personer.</span></div>';
   let h='';
   const btns='<div class="row"><button class="btn ghost" data-a="copy">Kopiér listen</button><button class="btn ghost" data-a="shopreset">Fjern alle flueben</button></div>';
+  const openGroups=[],doneGroups=[];
   CATORDER.forEach(c=>{
     const g=items.concat(cust).filter(i=>i.cat===c).sort((a,b)=>(!!S.shop[a.key]-!!S.shop[b.key])||a.n.localeCompare(b.n,'da'));
     if(!g.length)return;
-    h+='<div class="group"><h3>'+c+'</h3>';
+    const all=g.every(i=>!!S.shop[i.key]);
+    let h='<div class="group'+(all?' alldone':'')+'"><h3>'+c+(all?' ✓':'')+'</h3>';
     g.forEach(i=>{
       const done=!!S.shop[i.key];
       if(i.custom){h+='<div class="item crow'+(done?' done':'')+'"><button class="crow-main" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+esc(cap(i.n))+'</span><span class="icap">Egen vare</span></span><span class="qty">'+esc(i.q)+'</span></button><button class="x sm" data-a="customdel" data-id="'+i.id+'" aria-label="Fjern '+esc(i.n)+'">✕</button></div>';return;}
       h+='<button class="item'+(done?' done':'')+'" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+cap(i.n)+'</span><span class="icap">'+(i.dishes.length>1?'<em>Går igen</em>':'')+i.dishes.join(', ')+'</span></span><span class="qty">'+fmtQty(i.q,i.u)+'</span></button>';
     });
     h+='</div>';
+    (all?doneGroups:openGroups).push(h);
   });
-  return h+sum+btns;
+  return openGroups.join('')+doneGroups.join('')+sum+btns;
 }
 
 function snackEntries(){
