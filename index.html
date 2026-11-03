@@ -774,7 +774,7 @@ function suggest(excludeDate){
     return {d:d,shared:shared,fresh:names.length-shared.length,v:verdict(d.id),score:(chosen.length?w*2-(names.length-shared.length)*0.4:0)+bonus,hasChosen:chosen.length>0};
   }).sort((a,b)=>b.score-a.score);
 }
-function roundQty(q,u){if(u==='g')return q<200?Math.ceil(q/10-1e-9)*10:Math.ceil(q/50-1e-9)*50;if(u==='dl')return Math.ceil(q*2-1e-9)/2;return Math.max(1,Math.ceil(q-1e-9));}
+function roundQty(q,u){if(u==='g')return q<200?Math.ceil(q/10-1e-9)*10:Math.ceil(q/50-1e-9)*50;if(u==='dl')return Math.ceil(q*2-1e-9)/2;if(u==='l')return Math.max(0.5,Math.ceil(q*2-1e-9)/2);return Math.max(1,Math.ceil(q-1e-9));}
 const numFmt=n=>String(Math.round(n*10)/10).replace('.',',');
 function fmtQty(q,u){
   if(u==='g')return q>=1000?numFmt(q/1000)+' kg':numFmt(q)+' g';
@@ -804,9 +804,10 @@ function shopList(){
   const m=new Map();
   upcoming().map(p=>dish(p.dishId)).concat(snackEntries()).forEach(d=>{
     d.ing.forEach(i=>{
-      const k=i[0]+'|'+i[2];
-      const e=m.get(k)||{n:i[0],u:i[2],q:0,dishes:[]};
-      e.q+=i[1]*S.people/4;
+      const mk=i[0]==='mælk'&&i[2]==='dl',iu=mk?'l':i[2],iq=mk?i[1]/10:i[1];
+      const k=i[0]+'|'+iu;
+      const e=m.get(k)||{n:i[0],u:iu,q:0,dishes:[]};
+      e.q+=iq*S.people/4;
       if(e.dishes.indexOf(d.n)<0)e.dishes.push(d.n);
       m.set(k,e);
     });
@@ -816,9 +817,9 @@ function shopList(){
     chosenItems(p.dishId).forEach(it=>{
       const lab=d.n+(d.id==='smoerrebroed'?' (smørrebrød)':' (tilbehør)');
       (it.parts||[[SIDEING[it.n]||it.n.toLowerCase(),it.q,it.u]]).forEach(pt=>{
-        const nm=pt[0],k=nm+'|'+pt[2];
-        const e=m.get(k)||{n:nm,u:pt[2],q:0,dishes:[]};
-        e.q+=pt[1]*S.people/4;
+        const nm=pt[0],mk=nm==='mælk'&&pt[2]==='dl',pu=mk?'l':pt[2],pq=mk?pt[1]/10:pt[1],k=nm+'|'+pu;
+        const e=m.get(k)||{n:nm,u:pu,q:0,dishes:[]};
+        e.q+=pq*S.people/4;
         if(e.dishes.indexOf(lab)<0)e.dishes.push(lab);
         m.set(k,e);
       });
