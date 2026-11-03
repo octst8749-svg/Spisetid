@@ -932,7 +932,7 @@ function viewShopPlan(){
     let h='<div class="group'+(all?' alldone':'')+'"><h3>'+c+(all?' ✓':'')+'</h3>';
     g.forEach(i=>{
       const done=!!S.shop[i.key];
-      if(i.custom){h+='<div class="item crow'+(done?' done':'')+'"><button class="crow-main" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+esc(cap(i.n))+'</span><span class="icap">Egen vare</span></span><span class="qty">'+esc(i.q)+'</span></button><button class="x sm" data-a="customdel" data-id="'+i.id+'" aria-label="Fjern '+esc(i.n)+'">✕</button></div>';return;}
+      if(i.custom){h+='<div class="item crow'+(done?' done':'')+'"><button class="crow-main" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+esc(cap(i.n))+'</span><span class="icap">Egen vare</span></span><span class="qty">'+esc(i.q)+'</span></button><button class="x sm" data-a="customdel" data-id="'+i.id+'" aria-label="Fjern '+esc(i.n)+'">✕</button></div>'+(S.confirmCustom===i.id?'<div class="confirm" role="alert"><span>Fjern '+esc(i.n)+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="customyes" data-id="'+i.id+'">Ja, fjern</button><button class="btn ghost" data-a="customno">Behold</button></span></div>':'');return;}
       h+='<button class="item'+(done?' done':'')+'" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+cap(i.n)+'</span><span class="icap">'+(i.dishes.length>1?'<em>Går igen</em>':'')+i.dishes.join(', ')+'</span></span><span class="qty">'+fmtQty(i.q,i.u)+'</span></button>';
     });
     h+='</div>';
@@ -1316,7 +1316,9 @@ const A={
     }catch(e){toast('Koden kan ikke læses. Tjek, at hele koden er indsat.');}
   },
   sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}setQtyFor(el.dataset.v);const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
-  customdel(el){S.custom=S.custom.filter(c=>c.id!==el.dataset.id);delete S.shop['x-'+el.dataset.id];persist();render();},
+  customdel(el){S.confirmCustom=el.dataset.id;render();},
+  customno(){S.confirmCustom=null;render();},
+  customyes(el){S.confirmCustom=null;S.custom=S.custom.filter(c=>c.id!==el.dataset.id);delete S.shop['x-'+el.dataset.id];VARER=null;persist();render();},
   open(el){S.sheet=el.dataset.date;S.q='';renderSheet();},
   close(){closeSheet();},
   rec(el){S.sheet=null;S.rec=el.dataset.dish;renderSheet();},
