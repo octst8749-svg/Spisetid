@@ -166,6 +166,7 @@ h1,h2,h3,p{margin:0}
 .addform .search{margin:0;flex:1 1 170px;min-width:0}
 .addform .qtyin{flex:0 1 96px}
 .nwrap{position:relative;flex:1 0 100%}
+.qtysel{font:700 15px var(--f-body);color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:8px 8px;min-height:40px;max-width:112px;margin-left:6px}
 .nwrap .search{width:100%}
 .sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:6;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--surface);box-shadow:0 0 0 1.5px var(--line),0 8px 20px rgba(0,0,0,.18)}
 .sugg:empty{display:none}
@@ -955,7 +956,7 @@ function viewShopPlan(){
     let h='<div class="group'+(all?' alldone':'')+'"><h3>'+c+(all?' ✓':'')+'</h3>';
     g.forEach(i=>{
       const done=!!S.shop[i.key];
-      if(i.custom){h+='<div class="item crow'+(done?' done':'')+'"><button class="crow-main" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+esc(cap(i.n))+'</span><span class="icap">Egen vare</span></span><span class="qty">'+esc(i.q)+'</span></button><button class="x sm" data-a="customdel" data-id="'+i.id+'" aria-label="Fjern '+esc(i.n)+'">✕</button></div>'+(S.confirmCustom===i.id?'<div class="confirm" role="alert"><span>Fjern '+esc(i.n)+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="customyes" data-id="'+i.id+'">Ja, fjern</button><button class="btn ghost" data-a="customno">Behold</button></span></div>':'');return;}
+      if(i.custom){h+='<div class="item crow'+(done?' done':'')+'"><button class="crow-main" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+esc(cap(i.n))+'</span><span class="icap">Egen vare</span></span></button><select class="qtysel" data-id="'+i.id+'" aria-label="Antal for '+esc(i.n)+'">'+qtyOptionsFor(i.q)+'</select><button class="x sm" data-a="customdel" data-id="'+i.id+'" aria-label="Fjern '+esc(i.n)+'">✕</button></div>'+(S.confirmCustom===i.id?'<div class="confirm" role="alert"><span>Fjern '+esc(i.n)+'?</span><span class="row" style="margin:0"><button class="btn danger" data-a="customyes" data-id="'+i.id+'">Ja, fjern</button><button class="btn ghost" data-a="customno">Behold</button></span></div>':'');return;}
       h+='<button class="item'+(done?' done':'')+'" data-a="shop" data-key="'+i.key+'" aria-pressed="'+done+'"><span class="cb" aria-hidden="true">'+(done?'✓':'')+'</span><span class="dmain"><span class="iname">'+cap(i.n)+'</span><span class="icap">'+(i.dishes.length>1?'<em>Går igen</em>':'')+i.dishes.join(', ')+'</span></span><span class="qty">'+fmtQty(i.q,i.u)+'</span></button>';
     });
     h+='</div>';
@@ -1042,6 +1043,12 @@ function qtyOptions(def){
   const unit=m[2],want=Number(m[1].replace(',','.')),list=(QTYSETS[unit]||[1,2,3,4,5]).slice();
   if(list.indexOf(want)<0){list.push(want);list.sort((a,b)=>a-b);}
   return '<option value="">Antal</option>'+list.map(n=>{const t=String(n).replace('.',',')+' '+unit;return '<option'+(n===want?' selected':'')+'>'+t+'</option>';}).join('');
+}
+function qtyOptionsFor(q){
+  q=String(q||'').trim();
+  if(!q)return qtyOptions('');
+  if(/^[\d.,]+\s+\S/.test(q))return qtyOptions(q);
+  return '<option value="">Antal</option><option selected>'+esc(q)+'</option>'+qtyOptions('').replace('<option value="">Antal</option>','');
 }
 function setQtyFor(name){const q=$('#addqty');if(!q)return;q.innerHTML=qtyOptions(defaultQty(name));}
 let VARER=null;
@@ -1396,6 +1403,10 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]');
   if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el);
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t&&t.classList&&t.classList.contains('qtysel')){const c=S.custom.find(x=>x.id===t.dataset.id);if(c){c.q=t.value;persist();toast('Antal er ændret');}}
 });
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){if(VARER&&VARER.some(n=>norm(n)===norm(e.target.value).trim()))setQtyFor(e.target.value);const b=$('#sugg'),sv=suggestVarer(e.target.value),exact=sv.some(n=>norm(n)===norm(e.target.value).trim());if(b)b.innerHTML=(exact?[]:sv.slice(0,5)).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&anySheet())closeSheet();});
