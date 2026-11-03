@@ -395,10 +395,10 @@ const infoHtml=(d,noChosen)=>(DESC[d.id]?'<span class="dmeta">'+DESC[d.id]+'</sp
 
 /* Tilbehør til indkøbslisten: læser forslagsteksten og finder varer, der kan købes */
 const SIDEMAP=[
- [/agurk/,['Agurk',1,'stk']],[/tomat/,['Tomater',3,'stk']],[/gulerod/,['Gulerødder',4,'stk']],[/broccoli/,['Broccoli',1,'stk']],
+ [/agurk/,['Agurk',1,'stk']],[/tomat/,['Tomater',3,'stk']],[/gulerod|gulerød/,['Gulerødder',4,'stk']],[/broccoli/,['Broccoli',1,'stk']],
  [/peberfrugt/,['Peberfrugt',1,'stk']],[/majs/,['Majs',1,'dåse']],[/ærter/,['Ærter (frost)',200,'g']],[/radiser/,['Radiser',1,'bundt']],
  [/citron/,['Citron',1,'stk']],[/skyr|yoghurt/,['Yoghurt naturel',1,'bæger']],[/bær/,['Bær (friske eller frosne)',250,'g']],
- [/frugt/,['Frugt (æbler og bananer)',4,'stk']],[/søde kartofler/,['Søde kartofler',600,'g']],[/brød/,['Groft brød',1,'stk']],
+ [/(^|[^a-zæøå])frugt/,['Frugt (æbler og bananer)',4,'stk']],[/søde kartofler/,['Søde kartofler',600,'g']],[/brød/,['Groft brød',1,'stk']],
  [/creme fraiche/,['Creme fraiche',1,'bæger']],[/æg/,['Æg',2,'stk']],[/mælk/,['Mælk',5,'dl']]
 ];
 const MEATMAP=[
