@@ -417,6 +417,8 @@ const SMOERREBROED=[
  {n:'Roastbeef med remoulade',kind:'smørrebrød',parts:[['roastbeef',150,'g'],['remoulade',0.5,'glas'],['ristede løg',0.5,'pk']],step:'Læg roastbeef på rugbrødet, og top med remoulade og ristede løg.'},
  {n:'Leverpostej med bacon',kind:'smørrebrød',parts:[['leverpostej',1,'pk'],['bacon',100,'g'],['tomater',2,'stk']],step:'Steg baconen sprød på en tør pande. Læg leverpostej på rugbrødet, og top med bacon og tomat i skiver.'}
 ];
+const BASEVEG=[['Agurk',1,'stk'],['Gulerødder',4,'stk'],['Tomater',3,'stk'],['Peberfrugt',1,'stk'],['Broccoli',1,'stk']];
+const NOBASE=['pandekager','havregroed'];
 function sideItems(id){
   if(id==='smoerrebroed')return SMOERREBROED.slice();
   const out=[];
@@ -426,6 +428,7 @@ function sideItems(id){
     map.forEach(m=>{if(m[0].test(t)&&!out.some(o=>o.n===m[1][0]))out.push({n:m[1][0],q:m[1][1],u:m[1][2],kind:kind});});
   };
   run(NEEDS[id],MEATMAP,'kød');run(SIDE[id],SIDEMAP,'tilbehør');
+  if(NOBASE.indexOf(id)<0)BASEVEG.forEach(b=>{if(!out.some(o=>o.n===b[0]))out.push({n:b[0],q:b[1],u:b[2],kind:'tilbehør'});});
   SALADS.forEach(x=>out.push(x));
   return out;
 }
