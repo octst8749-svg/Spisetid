@@ -662,7 +662,8 @@ function parseRecipeHtml(html){
 }
 /* Prøver én tjeneste ad gangen og stopper først, når et svar faktisk indeholder en opskrift. */
 const WKEY='spisetid-worker';
-function getWorker(){try{return localStorage.getItem(WKEY)||'';}catch(e){return '';}}
+const FAST_WORKER='https://spisetid-hent.octst8749.workers.dev';
+function getWorker(){try{return localStorage.getItem(WKEY)||FAST_WORKER;}catch(e){return FAST_WORKER;}}
 async function fetchRecipe(u){
   const tried=[],w=getWorker().trim().replace(/\/+$/,'');
   const tries=[];
