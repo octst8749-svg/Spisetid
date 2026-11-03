@@ -695,14 +695,14 @@ function reportText(){
 }
 
 /* ---------- Tilstand ---------- */
-const S={tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null,reportSheet:false};
+const S={shopSig:{},tab:'plan',week:mondayOf(new Date()),plan:{},ratings:{},shop:{},people:4,uid:null,synced:false,late:false,filter:'alle',sheet:null,rec:null,q:'',snacks:{},custom:[],confirmDay:null,confirmSnack:null,snackSheet:false,backup:false,mine:[],kind:'retter',addSheet:false,confirmMine:null,sideFor:null,sideItems:[],sideSel:[],sides:{},planFor:null,reportSheet:false};
 let db=null,user=null,toastT=0;
 const $=s=>document.querySelector(s);
 const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
 
 const KEY='spisetid-v1';
 /* Lagring: gemmes både i localStorage og IndexedDB, og den nyeste kopi vinder ved start. */
-const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,mine:S.mine,sides:S.sides,at:Date.now()});
+const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,mine:S.mine,sides:S.sides,sig:S.shopSig,at:Date.now()});
 function applySnap(r){
   S.plan=r.plan||{};S.ratings=r.ratings||{};S.shop=r.shop||{};S.snacks=r.snacks||{};
   S.custom=Array.isArray(r.custom)?r.custom:[];
@@ -710,13 +710,26 @@ function applySnap(r){
   S.mine=Array.isArray(r.mine)?r.mine.filter(m=>m&&m.id&&m.n&&Array.isArray(m.ing)):[];
   registerMine(S.mine);
   S.sides=r.sides&&typeof r.sides==='object'&&!Array.isArray(r.sides)?r.sides:{};
+  S.shopSig=r.sig&&typeof r.sig==='object'&&!Array.isArray(r.sig)?r.sig:{};
   if(r.people>=1&&r.people<=12)S.people=r.people;
 }
 function idbOpen(){return new Promise((res,rej)=>{try{const q=indexedDB.open('spisetid',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}catch(e){rej(e);}});}
 function idbPut(v){return idbOpen().then(db=>new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,KEY);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);}));}
 function idbGet(){return idbOpen().then(db=>new Promise((res,rej)=>{const q=db.transaction('kv').objectStore('kv').get(KEY);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);}));}
 const saveOk={ls:false,idb:false};
+/* Et flueben hører til en bestemt indkøbsrunde: forsvinder varen fra listen, eller ændres mængden, fjernes fluebenet */
+function pruneChecks(){
+  if(!S.shopSig)S.shopSig={};
+  const cur={};shopList().forEach(i=>{cur[i.key]=i.q+'|'+i.u;});
+  Object.keys(S.shop).forEach(k=>{
+    if(k.indexOf('x-')===0){if(!S.custom.some(c=>'x-'+c.id===k)){delete S.shop[k];}return;}
+    if(!(k in cur)){delete S.shop[k];delete S.shopSig[k];return;}
+    if(S.shopSig[k]===undefined)S.shopSig[k]=cur[k];
+    else if(S.shopSig[k]!==cur[k]){delete S.shop[k];delete S.shopSig[k];}
+  });
+}
 function persist(){
+  try{pruneChecks();}catch(e){}
   const v=snap();
   try{localStorage.setItem(KEY,JSON.stringify(v));saveOk.ls=localStorage.getItem(KEY)!==null;}catch(e){saveOk.ls=false;}
   idbPut(v).then(()=>{saveOk.idb=true;renderTop();}).catch(()=>{saveOk.idb=false;renderTop();});
