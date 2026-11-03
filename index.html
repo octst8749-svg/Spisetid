@@ -165,7 +165,9 @@ h1,h2,h3,p{margin:0}
 .addform{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .addform .search{margin:0;flex:1 1 170px;min-width:0}
 .addform .qtyin{flex:0 1 96px}
-.sugg{margin:-8px 0 14px;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--surface);box-shadow:0 0 0 1.5px var(--line)}
+.nwrap{position:relative;flex:1 0 100%}
+.nwrap .search{width:100%}
+.sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:6;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--surface);box-shadow:0 0 0 1.5px var(--line),0 8px 20px rgba(0,0,0,.18)}
 .sugg:empty{display:none}
 .sugg button{text-align:left;font:16px var(--f-body);color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:12px 14px;min-height:44px;cursor:pointer}
 .sugg button:first-child{border-top:0}
@@ -1051,7 +1053,7 @@ function suggestVarer(q){
   return st.concat(ct).filter(n=>own.indexOf(norm(n))<0||true).slice(0,6);
 }
 function viewShop(){
-  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><input id="addname" class="search" type="text" maxlength="60" placeholder="Tilføj vare, fx toiletpapir"><label class="sr" for="addqty">Antal</label><select id="addqty" class="search qtyin">'+qtyOptions('')+'</select><button class="btn" type="submit">Tilføj</button></form><div id="sugg" class="sugg" role="listbox" aria-label="Forslag"></div>';
+  let h='<form id="addform" class="addform" autocomplete="off"><label class="sr" for="addname">Vare</label><div class="nwrap"><input id="addname" class="search" type="text" maxlength="60" placeholder="Tilføj vare, fx toiletpapir"><div id="sugg" class="sugg" role="listbox" aria-label="Forslag"></div></div><label class="sr" for="addqty">Antal</label><select id="addqty" class="search qtyin">'+qtyOptions('')+'</select><button class="btn" type="submit">Tilføj</button></form>';
   return h+viewShopPlan();
 }
 function viewDishes(){
@@ -1395,7 +1397,7 @@ document.addEventListener('click',e=>{
   if(!el||el.disabled)return;
   const f=A[el.dataset.a];if(f)f(el);
 });
-document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){if(VARER&&VARER.some(n=>norm(n)===norm(e.target.value).trim()))setQtyFor(e.target.value);const b=$('#sugg');if(b)b.innerHTML=suggestVarer(e.target.value).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){if(VARER&&VARER.some(n=>norm(n)===norm(e.target.value).trim()))setQtyFor(e.target.value);const b=$('#sugg'),sv=suggestVarer(e.target.value),exact=sv.some(n=>norm(n)===norm(e.target.value).trim());if(b)b.innerHTML=(exact?[]:sv.slice(0,5)).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&anySheet())closeSheet();});
 document.addEventListener('submit',e=>{
   if(!e.target||e.target.id!=='addform')return;
