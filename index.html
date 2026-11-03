@@ -1011,7 +1011,16 @@ function renderSheet(){
   el.innerHTML='<div class="back" data-a="close"></div><section class="panel tall" role="dialog" aria-modal="true" aria-label="Vælg ret"><header class="phead"><h2>Ret til '+longDate(S.sheet)+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><input id="q" class="search" type="search" placeholder="Søg efter ret eller ingrediens" autocomplete="off"><div id="slist" class="slist"></div></section>';
   document.body.style.overflow='hidden';
   renderSheetList();
+  fitSheet();
 }
+/* Når tastaturet er fremme, tilpasses søgearket til den synlige del af skærmen, så hele listen kan rulles */
+function fitSheet(){
+  const p=document.querySelector('.panel.tall'),v=window.visualViewport;
+  if(!p||!v)return;
+  if(v.height<window.innerHeight-120){p.style.top=(v.offsetTop+8)+'px';p.style.height=(v.height-16)+'px';}
+  else{p.style.top='';p.style.height='';}
+}
+if(window.visualViewport){window.visualViewport.addEventListener('resize',fitSheet);window.visualViewport.addEventListener('scroll',fitSheet);}
 function renderSheetList(){
   const box=$('#slist');if(!box||!S.sheet)return;
   const all=suggest(S.sheet),q=S.q.trim().toLowerCase();
