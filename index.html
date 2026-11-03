@@ -1344,7 +1344,7 @@ const A={
       applySnap(r);persist();closeSheet();render();toast('Madplanen er hentet');
     }catch(e){toast('Koden kan ikke læses. Tjek, at hele koden er indsat.');}
   },
-  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}setQtyFor(el.dataset.v);const b=$('#sugg');if(b)b.innerHTML='';const q=$('#addqty');if(q)q.focus();},
+  sugpick(el){const i=$('#addname');if(i){i.value=el.dataset.v;}setQtyFor(el.dataset.v);const b=$('#sugg');if(b)b.innerHTML='';},
   customdel(el){S.confirmCustom=el.dataset.id;render();},
   customno(){S.confirmCustom=null;render();},
   customyes(el){S.confirmCustom=null;S.custom=S.custom.filter(c=>c.id!==el.dataset.id);delete S.shop['x-'+el.dataset.id];VARER=null;persist();render();},
