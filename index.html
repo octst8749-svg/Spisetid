@@ -148,6 +148,7 @@ h1,h2,h3,p{margin:0}
 .x{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:16px}
 .search{width:100%;font:16px var(--f-body);padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);margin-bottom:10px}
 .slist{overflow-y:auto;flex:1;min-height:0}
+.panel.tall{top:7%;bottom:auto;height:81%;max-height:none;border-radius:22px}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
 .fact,.hl{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:2px 9px 2px 7px;border-radius:999px;white-space:nowrap}
 .fact{border:1px solid var(--line);color:var(--muted)}
@@ -1007,7 +1008,7 @@ function renderSheet(){
     document.body.style.overflow='hidden';return;
   }
   if(!S.sheet){el.innerHTML='';document.body.style.overflow='';return;}
-  el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Vælg ret"><header class="phead"><h2>Ret til '+longDate(S.sheet)+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><input id="q" class="search" type="search" placeholder="Søg efter ret eller ingrediens" autocomplete="off"><div id="slist" class="slist"></div></section>';
+  el.innerHTML='<div class="back" data-a="close"></div><section class="panel tall" role="dialog" aria-modal="true" aria-label="Vælg ret"><header class="phead"><h2>Ret til '+longDate(S.sheet)+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><input id="q" class="search" type="search" placeholder="Søg efter ret eller ingrediens" autocomplete="off"><div id="slist" class="slist"></div></section>';
   document.body.style.overflow='hidden';
   renderSheetList();
 }
