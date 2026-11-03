@@ -208,24 +208,6 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const TESS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-function loadTess(){
-  if(window.Tesseract)return Promise.resolve(window.Tesseract);
-  return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=TESS_URL;sc.onload=()=>window.Tesseract?res(window.Tesseract):rej(new Error('x'));sc.onerror=()=>rej(new Error('x'));document.head.appendChild(sc);});
-}
-async function ocrImage(file){
-  const msg=$('#rmsg');if(!msg)return;
-  msg.textContent='Henter tekstgenkendelse …';
-  let T;try{T=await loadTess();}catch(e){msg.textContent='Kunne ikke hente tekstgenkendelsen. Prøv igen med net, eller åbn billedet i Fotos, tryk og hold på teksten, vælg Kopiér og indsæt den i feltet herunder.';return;}
-  try{
-    const r=await T.recognize(file,'dan',{logger:m=>{const el=$('#rmsg');if(el&&m&&m.status){const pc=typeof m.progress==='number'?' '+Math.round(m.progress*100)+' %':'';el.textContent=(m.status==='recognizing text'?'Læser billedet':'Forbereder')+pc+' …';}}});
-    const txt=((r&&r.data&&r.data.text)||'').trim();
-    if(!txt){msg.textContent='Der blev ikke fundet tekst i billedet. Prøv et skarpere billede med bedre lys.';return;}
-    const ta=$('#rtext');if(ta)ta.value=txt;
-    A.readtext();
-    const m2=$('#rmsg');if(m2)m2.textContent+=' Tekstgenkendelse kan tage fejl, så tjek mængder og trin.';
-  }catch(e){const el=$('#rmsg');if(el)el.textContent='Billedet kunne ikke læses. Prøv et skarpere billede.';}
-}
 const APP_VERSION='2026-11-03-1325';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
@@ -1147,7 +1129,7 @@ function renderSheet(){
     document.body.style.overflow='hidden';return;
   }
   if(S.addSheet){
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilføj opskrift"><header class="phead"><h2>Tilføj egen opskrift</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><h3 class="rh" style="margin-top:0">Hent fra et link</h3><label class="sr" for="ru">Link</label><input id="ru" class="search" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Indsæt link til en opskrift" autocomplete="off"><button class="btn ghost" data-a="fetchrec" style="margin-top:8px">Hent opskrift</button><p class="meta" id="rmsg">Virker på de fleste opskriftssider. Du kan altid rette bagefter eller skrive opskriften selv.</p><h3 class="rh">Eller læs fra et billede</h3><p class="meta">Tag et billede af opskriften i bogen, eller vælg et fra billederne. Første gang hentes et sprogkort på nogle MB.</p><label class="btn" style="display:inline-block;margin-top:6px;text-align:center;line-height:24px">Læs fra billede<input type="file" id="rimg" accept="image/*" hidden></label><h3 class="rh">Eller indsæt hele teksten fra siden</h3><label class="sr" for="rtext">Tekst fra opskriftssiden</label><textarea id="rtext" class="search" rows="4" style="min-height:90px" placeholder="Åbn opskriften, markér det hele, kopiér, og indsæt her"></textarea><button class="btn ghost" data-a="readtext" style="margin-top:8px">Læs teksten</button><h3 class="rh">Opskrift</h3><label class="meta" for="rk">Type</label><select id="rk" class="search"><option value="ret">Ret til aftensmad</option><option value="snack">Snack eller bagværk</option></select><label class="meta" for="rn">Navn</label><input id="rn" class="search" type="text" maxlength="80" autocomplete="off"><label class="meta" for="rt">Tid i minutter</label><input id="rt" class="search" type="number" inputmode="numeric" min="1" max="600" placeholder="fx 45"><label class="meta" for="rp">Antal portioner (hvor mange opskriften er til)</label><input id="rp" class="search" type="number" inputmode="numeric" min="1" max="50" value="4"><label class="meta" for="rh">Hvor sund er den?</label><select id="rh" class="search"><option value="1">Hyggemad</option><option value="2" selected>Okay</option><option value="3">Sund</option></select><label class="meta" for="ri">Ingredienser (én på hver linje, fx 400 g hakket oksekød)</label><textarea id="ri" class="search" rows="7" style="min-height:140px"></textarea><p class="meta">Salt, peber, vand og olie kommer ikke med på indkøbslisten.</p><label class="meta" for="rs">Sådan gør du (ét trin på hver linje)</label><textarea id="rs" class="search" rows="7" style="min-height:140px"></textarea><button class="btn" data-a="saverec" style="margin-top:10px">Gem opskrift</button></div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilføj opskrift"><header class="phead"><h2>Tilføj egen opskrift</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><h3 class="rh" style="margin-top:0">Hent fra et link</h3><label class="sr" for="ru">Link</label><input id="ru" class="search" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Indsæt link til en opskrift" autocomplete="off"><button class="btn ghost" data-a="fetchrec" style="margin-top:8px">Hent opskrift</button><p class="meta" id="rmsg">Virker på de fleste opskriftssider. Du kan altid rette bagefter eller skrive opskriften selv.</p><h3 class="rh">Eller indsæt hele teksten fra siden</h3><label class="sr" for="rtext">Tekst fra opskriftssiden</label><textarea id="rtext" class="search" rows="4" style="min-height:90px" placeholder="Åbn opskriften, markér det hele, kopiér, og indsæt her"></textarea><button class="btn ghost" data-a="readtext" style="margin-top:8px">Læs teksten</button><h3 class="rh">Opskrift</h3><label class="meta" for="rk">Type</label><select id="rk" class="search"><option value="ret">Ret til aftensmad</option><option value="snack">Snack eller bagværk</option></select><label class="meta" for="rn">Navn</label><input id="rn" class="search" type="text" maxlength="80" autocomplete="off"><label class="meta" for="rt">Tid i minutter</label><input id="rt" class="search" type="number" inputmode="numeric" min="1" max="600" placeholder="fx 45"><label class="meta" for="rp">Antal portioner (hvor mange opskriften er til)</label><input id="rp" class="search" type="number" inputmode="numeric" min="1" max="50" value="4"><label class="meta" for="rh">Hvor sund er den?</label><select id="rh" class="search"><option value="1">Hyggemad</option><option value="2" selected>Okay</option><option value="3">Sund</option></select><label class="meta" for="ri">Ingredienser (én på hver linje, fx 400 g hakket oksekød)</label><textarea id="ri" class="search" rows="7" style="min-height:140px"></textarea><p class="meta">Salt, peber, vand og olie kommer ikke med på indkøbslisten.</p><label class="meta" for="rs">Sådan gør du (ét trin på hver linje)</label><textarea id="rs" class="search" rows="7" style="min-height:140px"></textarea><button class="btn" data-a="saverec" style="margin-top:10px">Gem opskrift</button></div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(S.backup){
@@ -1424,7 +1406,6 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t&&t.id==='rimg'){if(t.files&&t.files[0])ocrImage(t.files[0]);t.value='';return;}
   if(t&&t.classList&&t.classList.contains('qtysel')){const c=S.custom.find(x=>x.id===t.dataset.id);if(c){c.q=t.value;persist();toast('Antal er ændret');}}
 });
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='q'){S.q=e.target.value;renderSheetList();}if(e.target&&e.target.id==='addname'){if(VARER&&VARER.some(n=>norm(n)===norm(e.target.value).trim()))setQtyFor(e.target.value);const b=$('#sugg'),sv=suggestVarer(e.target.value),exact=sv.some(n=>norm(n)===norm(e.target.value).trim());if(b)b.innerHTML=(exact?[]:sv.slice(0,5)).map(n=>'<button type="button" role="option" data-a="sugpick" data-v="'+esc(n)+'" data-q="'+esc(defaultQty(n))+'"><span>'+esc(n)+'</span><small>'+esc(defaultQty(n))+'</small></button>').join('');}if(e.target&&e.target.id==='dq'){S.dq=e.target.value;const b=$('#dlist');if(b)b.innerHTML=dishCards();}});
