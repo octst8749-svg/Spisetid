@@ -208,7 +208,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-04-1025';
+const APP_VERSION='2026-11-04-1035';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -866,7 +866,7 @@ function facts(d){
   for(let i=1;i<=3;i++)lv+='<svg class="ic'+(i<=h?' on':'')+'" viewBox="0 0 24 24" aria-hidden="true">'+LEAF+'</svg>';
   return '<span class="facts"><span class="fact"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>ca. '+d.m+' min</span><span class="hl h'+h+'">'+lv+lab+'</span></span>';
 }
-const tile=(d,sm)=>'<span class="tile t'+(d.i%5)+(sm?' sm':'')+'" aria-hidden="true">'+d.e+'</span>';
+const tile=(d,sm)=>'<span class="tile t'+(d.i%5)+(sm?' sm':'')+'" aria-hidden="true">'+(d.jm?'<img src="jmh-logo.jpg" alt="" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;display:block">':d.e)+'</span>';
 function stars(id,mine){
   let h='<span class="stars" role="group" aria-label="Giv karakter">';
   for(let i=1;i<=5;i++)h+='<button class="st'+(i<=mine?' on':'')+'" data-a="star" data-dish="'+id+'" data-n="'+i+'" aria-label="'+i+' ud af 5">★</button>';
