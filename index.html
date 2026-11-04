@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3F7F2">
+<meta name="theme-color" content="#F6F8F1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Spisetid">
@@ -18,38 +18,38 @@
 <style>
 /* Layout: sticky header, week strip of seven day tiles, cards for the days that are planned, bottom tab bar, bottom sheet for picking a dish. */
 :root{
-  --bg:#F3F7F2; --surface:#FFFFFF; --ink:#1B2A28; --muted:#586F6A; --line:#DBE5DF;
-  --accent:#1D7967; --on-accent:#FFFFFF; --accent-soft:#DCF0E8;
-  --sun:#E9A820; --sun-soft:#FFF0C8; --sun-ink:#7A5300;
-  --berry:#CF3F55; --berry-soft:#FBE2E6; --star-off:#CBD8D2;
-  --t0:#FFE2D5; --t1:#FFF0C8; --t2:#DCF0E8; --t3:#DAEAFA; --t4:#EADCF4;
+  --bg:#F6F8F1; --surface:#FFFFFF; --ink:#1E2B1A; --muted:#5C6D55; --line:#DFE7D6;
+  --accent:#2B6A12; --on-accent:#FFFFFF; --accent-soft:#E4F0DB;
+  --sun:#F07A0A; --sun-soft:#FFE9D3; --sun-ink:#8A3F00;
+  --berry:#CF3F55; --berry-soft:#FBE2E6; --star-off:#D3DACB;
+  --t0:#FFE4CF; --t1:#FFE9D3; --t2:#E4F0DB; --t3:#EAF1D0; --t4:#FBE9D8;
   --on-berry:#FFFFFF;
-  --good:#2E7D32; --good-soft:#E0F2E1; --okay:#8A5E00; --okay-soft:#FFF0C8; --treat:#B14D24; --treat-soft:#FFE2D5;
+  --good:#2E7D32; --good-soft:#E0F2E1; --okay:#8A5E00; --okay-soft:#FFE9D3; --treat:#B14D24; --treat-soft:#FFE4CF;
   --shadow:0 1px 2px rgba(20,40,35,.06),0 4px 14px rgba(20,40,35,.07);
   --f-display:'Fredoka','Trebuchet MS',system-ui,sans-serif;
   --f-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0F1716; --surface:#172220; --ink:#E8F1EE; --muted:#9BB3AD; --line:#27403B;
-    --accent:#4FC7AC; --on-accent:#06211B; --accent-soft:#17382F;
-    --sun:#F4C45C; --sun-soft:#3A3014; --sun-ink:#F4C45C;
-    --berry:#F0788A; --berry-soft:#3A1D24; --star-off:#3A524C;
-    --t0:#3B2319; --t1:#3A3014; --t2:#17382F; --t3:#17303F; --t4:#2D2240;
+    --bg:#11170F; --surface:#192215; --ink:#EAF2E4; --muted:#A3B59A; --line:#2A3C25;
+    --accent:#84CB5E; --on-accent:#0E2205; --accent-soft:#1D3317;
+    --sun:#FF9A3D; --sun-soft:#3D2812; --sun-ink:#FF9A3D;
+    --berry:#F0788A; --berry-soft:#3A1D24; --star-off:#3C4F35;
+    --t0:#3B2319; --t1:#3D2812; --t2:#1D3317; --t3:#26301A; --t4:#3D2812;
     --on-berry:#2B0A10;
-    --good:#7BD389; --good-soft:#1B3A22; --okay:#F4C45C; --okay-soft:#3A3014; --treat:#F0A27A; --treat-soft:#3B2319;
+    --good:#7BD389; --good-soft:#1B3A22; --okay:#FF9A3D; --okay-soft:#3D2812; --treat:#F0A27A; --treat-soft:#3B2319;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0F1716; --surface:#172220; --ink:#E8F1EE; --muted:#9BB3AD; --line:#27403B;
-  --accent:#4FC7AC; --on-accent:#06211B; --accent-soft:#17382F;
-  --sun:#F4C45C; --sun-soft:#3A3014; --sun-ink:#F4C45C;
-  --berry:#F0788A; --berry-soft:#3A1D24; --star-off:#3A524C;
-  --t0:#3B2319; --t1:#3A3014; --t2:#17382F; --t3:#17303F; --t4:#2D2240;
+  --bg:#11170F; --surface:#192215; --ink:#EAF2E4; --muted:#A3B59A; --line:#2A3C25;
+  --accent:#84CB5E; --on-accent:#0E2205; --accent-soft:#1D3317;
+  --sun:#FF9A3D; --sun-soft:#3D2812; --sun-ink:#FF9A3D;
+  --berry:#F0788A; --berry-soft:#3A1D24; --star-off:#3C4F35;
+  --t0:#3B2319; --t1:#3D2812; --t2:#1D3317; --t3:#26301A; --t4:#3D2812;
     --on-berry:#2B0A10;
-    --good:#7BD389; --good-soft:#1B3A22; --okay:#F4C45C; --okay-soft:#3A3014; --treat:#F0A27A; --treat-soft:#3B2319;
+    --good:#7BD389; --good-soft:#1B3A22; --okay:#FF9A3D; --okay-soft:#3D2812; --treat:#F0A27A; --treat-soft:#3B2319;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
   color-scheme:dark;
 }
@@ -101,7 +101,7 @@ h1,h2,h3,p{margin:0}
 .sugtitle{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 8px}
 .sugwrap{margin-bottom:8px;background:var(--surface);border:1px solid var(--line);border-radius:16px}.sugwrap .drow{border:0;margin-bottom:0;background:transparent;padding-bottom:4px}.prevlink{display:block;margin:0 0 10px 78px;font-size:14px;font-weight:700;color:var(--accent);padding:6px 0;min-height:32px}
 .drow{width:100%;display:flex;gap:12px;align-items:center;padding:10px;border-radius:16px;background:var(--surface);border:1px solid var(--line);margin-bottom:8px}
-.card .drow{background:var(--bg)}
+.card .drow{background:var(--bg)}.card .sugwrap{background:var(--bg)}.card .sugwrap .drow{background:transparent}
 .drow:disabled{opacity:.5}
 .dmain{min-width:0;flex:1;display:block}
 .dname{display:block;font-weight:800;line-height:1.25}
@@ -209,7 +209,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-04-1055';
+const APP_VERSION='2026-11-04-1120';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -889,7 +889,7 @@ function badge(v){return v==='fav'?'<span class="badge">Favorit</span>':v==='nej
 
 function renderTop(){
   const pill=(saveOk.ls||saveOk.idb)?'<span class="pill">Gemt på denne telefon</span>':'<span class="pill warn">Kan ikke gemme her</span>';
-  $('#top').innerHTML='<div class="brand">Spisetid</div>'+pill;
+  $('#top').innerHTML='<div class="brand"><img src="icon-192.png" alt="" width="30" height="30" style="border-radius:8px;vertical-align:-8px;margin-right:8px">Spisetid</div>'+pill;
 }
 function renderTabs(){
   const open=shopList(dk(S.week)).filter(i=>!S.shop[i.key]).length+customFor(dk(S.week)).filter(c=>!S.shop['x-'+c.id]).length;
