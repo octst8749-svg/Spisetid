@@ -209,7 +209,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-04-1205';
+const APP_VERSION='2026-11-04-1225';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -826,14 +826,17 @@ const BAKEG=['pandekager','s-polsehorn','s-pizzasnegle','s-boller','s-kanelsnegl
 const GRAM={'mælk|dl':100,'olie|dl':90,'olie|spsk':12,'æg|stk':55,'banan|stk':110,'gulerødder|stk':100,'æbler|stk':150,'gær|pk':50,'bagepulver|pk':12,'kanel|pk':10,'kanel|tsk':3,'kardemomme|tsk':2,'sukker|spsk':12,'vaniljesukker|spsk':10,'kakao|spsk':7,'honning|spsk':20,'perlesukker|spsk':10,'yoghurt naturel|dl':100};
 function bakeQty(d,i){
   const q=i[1]*S.people/4,f=BAKEG.indexOf(d.id)>=0?GRAM[i[0]+'|'+i[2]]:0;
-  if(!f)return fmtRecipeQty(q,i[2]);
+  if(!f)return fmtRecipeQty(q,i[2],i[0]);
   if(i[0]==='gær'){const fr=Math.round(q*f/5)*5;return fr+' g frisk<br>'+Math.max(1,Math.round(fr/3))+' g tør';}
   const g=q*f,r=g<30?Math.max(1,Math.round(g)):g<200?Math.round(g/5)*5:Math.round(g/10)*10;
   return numFmt(r)+' g';
 }
-function fmtRecipeQty(q,u){
-  if(u==='g'||u==='dl')return fmtQty(roundQty(q,u),u);
-  const r=Math.max(0.5,Math.round(q*2)/2),w=Math.floor(r),n=(w?w:'')+(r%1?'½':'');
+const fracFmt=r=>{const w=Math.floor(r+1e-9),f=Math.round((r-w)*4);if(f===4)return String(w+1);return (w?String(w):'')+['','¼','½','¾'][f]||'0';};
+function fmtRecipeQty(q,u,nm){
+  if(u==='g'){const r=q<200?Math.max(5,Math.round(q/5)*5):Math.round(q/10)*10;return fmtQty(r,'g');}
+  if(u==='dl'){const r=q<2?Math.max(0.25,Math.round(q*4)/4):Math.round(q*2)/2;return fracFmt(r)+' dl';}
+  let st=q<3?0.25:q<8?0.5:1;if(nm&&/^æg$/.test(nm))st=Math.max(st,0.5);
+  const r=Math.max(st,Math.round(q/st)*st),n=fracFmt(r);
   const L={'dåse':['dåse','dåser'],'bæger':['bæger','bægre'],'glas':['glas','glas'],'pk':['pk','pk'],'stk':['stk','stk']}[u]||[u,u];
   return n+' '+(r<=1?L[0]:L[1]);
 }
