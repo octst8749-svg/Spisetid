@@ -208,7 +208,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2026-11-03-1325';
+const APP_VERSION='2026-11-04-0905';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -922,7 +922,8 @@ function viewPlan(){
     h+='<div class="empty-box"><h3>Sådan laver I en madplan</h3><ol><li>Tryk på de dage, I vil lave mad.</li><li>Vælg en ret til den første dag.</li><li>Spisetid foreslår retter med de samme ingredienser, så der bliver mindre madspild.</li><li>Åbn Indkøb for at få én samlet liste.</li></ol></div>';
   }else{
     days.forEach(dt=>{const k=dk(dt);if(S.plan[k])h+=planCard(k);});
-    h+='<div class="row"><button class="btn ghost" data-a="copyplan">Kopiér ugens menu</button></div>';
+    h+='<div class="row"><button class="btn ghost" data-a="copyplan">Kopiér ugens menu</button><button class="btn ghost" data-a="clearweek">Ryd ugen</button></div>';
+    if(S.confirmWeek===dk(w0)){const cnt=days.filter(x=>S.plan[dk(x)]).length;h+='<div class="confirm" role="alert"><span>Slet alle '+cnt+(cnt===1?' dag':' dage')+' i uge '+isoWeek(w0)+' med retter og tilbehør?</span><span class="row" style="margin:0"><button class="btn danger" data-a="clearweekyes">Ja, ryd ugen</button><button class="btn ghost" data-a="clearweekno">Annullér</button></span></div>';}
   }
   return h;
 }
@@ -1309,8 +1310,8 @@ const A={
     Object.keys(S.snacks).forEach(w=>{delete S.snacks[w][id];if(!Object.keys(S.snacks[w]).length)delete S.snacks[w];});
     S.confirmMine=null;persist();render();toast('Opskriften er slettet');
   },
-  tab(el){S.tab=el.dataset.t;S.confirmDay=null;S.confirmSnack=null;if(anySheet())closeSheet();render();window.scrollTo(0,0);},
-  week(el){S.week=addDays(S.week,7*Number(el.dataset.d));S.confirmDay=null;render();},
+  tab(el){S.tab=el.dataset.t;S.confirmDay=null;S.confirmWeek=null;S.confirmSnack=null;if(anySheet())closeSheet();render();window.scrollTo(0,0);},
+  week(el){S.week=addDays(S.week,7*Number(el.dataset.d));S.confirmDay=null;S.confirmWeek=null;render();},
   people(el){const n=Math.max(1,Math.min(12,S.people+Number(el.dataset.d)));if(n===S.people)return;S.people=n;persist(()=>db.doc('settings/household').set({people:n}));render();},
   day(el){
     const k=el.dataset.date,p=S.plan[k];
@@ -1321,6 +1322,9 @@ const A={
   remove(el){S.confirmDay=el.dataset.date;render();const c=document.getElementById('card-'+el.dataset.date);if(c)c.scrollIntoView({block:'nearest'});},
   removeyes(el){S.confirmDay=null;removeDay(el.dataset.date);render();toast('Dagen er fjernet');},
   removeno(){S.confirmDay=null;render();},
+  clearweek(){S.confirmWeek=dk(S.week);render();},
+  clearweekno(){S.confirmWeek=null;render();},
+  clearweekyes(){for(let i=0;i<7;i++){const k=dk(addDays(S.week,i));if(S.plan[k])removeDay(k);}S.confirmWeek=null;render();toast('Ugen er ryddet');},
   snack(el){
     const wk=dk(S.week),id=el.dataset.id,cur=S.snacks[wk]||{};
     if(cur[id])delete cur[id];else cur[id]=true;
