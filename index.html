@@ -209,7 +209,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='1.0';
+const APP_VERSION='1.1';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -467,6 +467,7 @@ const SIDESTEP={
  'kød:Æg':'Kog æggene i 8 minutter, eller steg dem som spejlæg. Pil de kogte æg, og skær dem i både.',
  'kød:Hakket svinekød':'Ælt farsen med salt og peber, form frikadeller, og steg dem ved middel varme i 8–10 minutter, til de er gennemstegte.'
 };
+const sideMult=(id,it)=>id==='smoerrebroed'?Math.max(1,Math.min(40,Number(((S.sidesN||{})[id]||{})[it.n])||S.people))/S.people:1;
 function chosenItems(id){const c=S.sides[id];return c&&c.length?sideItems(id).filter(it=>c.indexOf(it.n)>=0):[];}
 
 
@@ -738,7 +739,7 @@ const me=()=>String(S.uid||'lokal').replace(/[^A-Za-z0-9_.~:@+-]/g,'_');
 
 const KEY='spisetid-v1';
 /* Lagring: gemmes både i localStorage og IndexedDB, og den nyeste kopi vinder ved start. */
-const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,mine:S.mine,sides:S.sides,sig:S.shopSig,at:Date.now()});
+const snap=()=>({plan:S.plan,ratings:S.ratings,shop:S.shop,people:S.people,snacks:S.snacks,custom:S.custom,mine:S.mine,sides:S.sides,sidesN:S.sidesN,sig:S.shopSig,at:Date.now()});
 function applySnap(r){
   S.plan=r.plan||{};S.ratings=r.ratings||{};S.shop=r.shop||{};S.snacks=r.snacks||{};
   S.custom=Array.isArray(r.custom)?r.custom:[];
@@ -747,6 +748,7 @@ function applySnap(r){
   S.mine=Array.isArray(r.mine)?r.mine.filter(m=>m&&m.id&&m.n&&Array.isArray(m.ing)):[];
   registerJM();registerExtra();registerMine(S.mine);
   S.sides=r.sides&&typeof r.sides==='object'&&!Array.isArray(r.sides)?r.sides:{};
+  S.sidesN=r.sidesN&&typeof r.sidesN==='object'&&!Array.isArray(r.sidesN)?r.sidesN:{};
   S.shopSig=r.sig&&typeof r.sig==='object'&&!Array.isArray(r.sig)?r.sig:{};
   if(r.people>=1&&r.people<=12)S.people=r.people;
 }
@@ -863,8 +865,9 @@ function shopList(wk){
     const d=dish(p.dishId);
     chosenItems(p.dishId).forEach(it=>{
       const lab=d.n+(d.id==='smoerrebroed'?' (smørrebrød)':' (tilbehør)');
+      const sm=sideMult(p.dishId,it);
       (it.parts||[[SIDEING[it.n]||it.n.toLowerCase(),it.q,it.u]]).forEach(pt=>{
-        const nm=pt[0],cv=shopConv(nm,pt[2],pt[1]),pu=cv[0],pq=cv[1],k=nm+'|'+pu;
+        const nm=pt[0],cv=shopConv(nm,pt[2],pt[1]),pu=cv[0],pq=cv[1]*sm,k=nm+'|'+pu;
         const e=m.get(k)||{n:nm,u:pu,q:0,dishes:[]};
         e.q+=pq*S.people/4;
         if(e.dishes.indexOf(lab)<0)e.dishes.push(lab);
@@ -1162,7 +1165,7 @@ function renderSheet(){
   }
   if(S.sideFor){
     const dd=dish(S.sideFor);
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilbehør til indkøbslisten"><header class="phead"><h2>Vælg '+sideWord(S.sideFor)+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Til '+(dd?dd.n:'')+'. '+(S.sideFor==='smoerrebroed'?'Tryk på de smørrebrød, I vil have. Pålægget kommer på indkøbslisten og står i opskriften.':'Tryk på det, I vil have: ét kød eller fisk og de grøntsager, I vil have. Valget kommer på indkøbslisten og står i opskriften.')+' Mængderne passer til '+S.people+' personer.</p>'+S.sideItems.map((it,i)=>{const on=!!S.sideSel[i];return '<button class="drow'+(on?' picked':'')+'" data-a="sidetoggle" data-i="'+i+'" aria-pressed="'+on+'"><span class="cb" aria-hidden="true">'+(on?'✓':'')+'</span><span class="dmain"><span class="iname">'+it.n+'</span><span class="icap">'+(it.kind==='kød'?'Vælg ét kød eller fisk':it.kind==='salat'?'Salat: '+it.parts.map(x=>x[0]).join(', '):it.kind==='smørrebrød'?'Pålæg: '+it.parts.map(x=>x[0]).join(', '):'Sundt tilbehør')+'</span></span><span class="qty">'+(it.parts?'':fmtQty(roundQty(it.q*S.people/4,it.u),it.u))+'</span></button>';}).join('')+'<button class="btn" data-a="sideadd" style="margin-top:10px">Gem '+sideWord(S.sideFor)+'</button></div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Tilbehør til indkøbslisten"><header class="phead"><h2>Vælg '+sideWord(S.sideFor)+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header><div class="slist"><p class="meta">Til '+(dd?dd.n:'')+'. '+(S.sideFor==='smoerrebroed'?'Tryk på de smørrebrød, I vil have. Pålægget kommer på indkøbslisten og står i opskriften.':'Tryk på det, I vil have: ét kød eller fisk og de grøntsager, I vil have. Valget kommer på indkøbslisten og står i opskriften.')+' Mængderne passer til '+S.people+' personer.</p>'+S.sideItems.map((it,i)=>{const on=!!S.sideSel[i];return '<button class="drow'+(on?' picked':'')+'" data-a="sidetoggle" data-i="'+i+'" aria-pressed="'+on+'"><span class="cb" aria-hidden="true">'+(on?'✓':'')+'</span><span class="dmain"><span class="iname">'+it.n+'</span><span class="icap">'+(it.kind==='kød'?'Vælg ét kød eller fisk':it.kind==='salat'?'Salat: '+it.parts.map(x=>x[0]).join(', '):it.kind==='smørrebrød'?'Pålæg: '+it.parts.map(x=>x[0]).join(', '):'Sundt tilbehør')+'</span></span><span class="qty">'+(it.parts?'':fmtQty(roundQty(it.q*S.people/4,it.u),it.u))+'</span></button>'+(on&&S.sideFor==='smoerrebroed'?'<div class="cnt" style="display:flex;align-items:center;gap:10px;margin:-2px 0 10px 40px"><span class="meta">Hvor mange?</span><button class="rbtn" data-a="sidecnt" data-i="'+i+'" data-d="-1" aria-label="Én færre">−</button><b>'+S.sideCnt[i]+' stk</b><button class="rbtn" data-a="sidecnt" data-i="'+i+'" data-d="1" aria-label="Én mere">+</button></div>':'');}).join('')+'<button class="btn" data-a="sideadd" style="margin-top:10px">Gem '+sideWord(S.sideFor)+'</button></div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(S.addSheet){
@@ -1179,7 +1182,7 @@ function renderSheet(){
   }
   if(S.rec){
     const d=dish(S.rec)||SBY[S.rec],r=RECIPES[S.rec]||{s:[],k:''};
-    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header>'+(S.recBack?'<div class="row" style="margin:4px 0 8px"><button class="btn" data-a="pick" data-dish="'+d.id+'" data-date="'+S.recBack+'">Vælg denne ret</button><button class="btn ghost" data-a="close">Tilbage til listen</button></div>':'')+(d.jm?'<p class="meta" style="display:flex;align-items:center;gap:10px;margin:8px 0"><img src="jmh-logo.jpg" alt="Julemærkehjemmene" width="56" height="56" style="border-radius:50%"><b>Fra Julemærkehjemmene</b></p>':'')+'<div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p>'+infoHtml(d,true)+(sideItems(d.id).length?'<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="sideopen" data-dish="'+d.id+'">Vælg '+sideWord(d.id)+'</button></div>':'')+'<h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[3]||i[0])+'</span><span class="qty">'+bakeQty(d,i)+'</span></li>').join('')+'</ul>'+(BAKEG.indexOf(d.id)>=0?'<p class="meta">Mængderne er i gram, så de er nøjagtige. Til opskriften regnes 1 æg som ca. 55 g og 1 dl mælk som 100 g. Tørgær er en tredjedel af vægten af frisk gær.</p>':'')+(chosenItems(d.id).length?'<h3 class="rh">'+(d.id==='smoerrebroed'?'Til smørrebrødet':'Til tilbehøret')+'</h3><ul class="ingl">'+chosenItems(d.id).map(it=>it.parts?it.parts.map(pt=>'<li><span>'+cap(pt[0])+' <small>('+it.n.toLowerCase()+')</small></span><span class="qty">'+fmtRecipeQty(pt[1]*S.people/4,pt[2])+'</span></li>').join(''):'<li><span>'+it.n+'</span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></li>').join('')+'</ul>':'')+'<h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(chosenItems(d.id).length?'<h3 class="rh">'+(d.id==='smoerrebroed'?'Smørrebrød':'Tilbehør')+'</h3><ol class="steps">'+chosenItems(d.id).map(it=>'<li><b>'+shortN(it.n)+':</b> '+(it.step||SIDESTEP[it.kind+':'+it.n]||'')+'</li>').join('')+'</ol>':'')+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+(r.src&&/^https?:\/\//.test(r.src)?'<p class="meta"><a href="'+esc(r.src)+'" target="_blank" rel="noopener noreferrer">Se opskriften på den oprindelige side</a></p>':'')+'</div></section>';
+    el.innerHTML='<div class="back" data-a="close"></div><section class="panel" role="dialog" aria-modal="true" aria-label="Opskrift"><header class="phead"><h2>'+d.n+'</h2><button class="x" data-a="close" aria-label="Luk">✕</button></header>'+(S.recBack?'<div class="row" style="margin:4px 0 8px"><button class="btn" data-a="pick" data-dish="'+d.id+'" data-date="'+S.recBack+'">Vælg denne ret</button><button class="btn ghost" data-a="close">Tilbage til listen</button></div>':'')+(d.jm?'<p class="meta" style="display:flex;align-items:center;gap:10px;margin:8px 0"><img src="jmh-logo.jpg" alt="Julemærkehjemmene" width="56" height="56" style="border-radius:50%"><b>Fra Julemærkehjemmene</b></p>':'')+'<div class="slist">'+facts(d)+'<p class="meta">'+(d.y?'Giver ca. '+Math.round(d.y*S.people/4)+' '+d.u+' · ':'')+'Til '+S.people+' personer</p>'+infoHtml(d,true)+(sideItems(d.id).length?'<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="sideopen" data-dish="'+d.id+'">Vælg '+sideWord(d.id)+'</button></div>':'')+'<h3 class="rh">Ingredienser</h3><ul class="ingl">'+d.ing.map(i=>'<li><span>'+cap(i[3]||i[0])+'</span><span class="qty">'+bakeQty(d,i)+'</span></li>').join('')+'</ul>'+(BAKEG.indexOf(d.id)>=0?'<p class="meta">Mængderne er i gram, så de er nøjagtige. Til opskriften regnes 1 æg som ca. 55 g og 1 dl mælk som 100 g. Tørgær er en tredjedel af vægten af frisk gær.</p>':'')+(chosenItems(d.id).length?'<h3 class="rh">'+(d.id==='smoerrebroed'?'Til smørrebrødet':'Til tilbehøret')+'</h3><ul class="ingl">'+chosenItems(d.id).map(it=>it.parts?it.parts.map(pt=>'<li><span>'+cap(pt[0])+' <small>('+it.n.toLowerCase()+(d.id==='smoerrebroed'?', '+Math.round(sideMult(d.id,it)*S.people)+' stk':'')+')</small></span><span class="qty">'+fmtRecipeQty(pt[1]*S.people/4*sideMult(d.id,it),pt[2],pt[0])+'</span></li>').join(''):'<li><span>'+it.n+'</span><span class="qty">'+fmtQty(roundQty(it.q*S.people/4,it.u),it.u)+'</span></li>').join('')+'</ul>':'')+'<h3 class="rh">Sådan gør du</h3><ol class="steps">'+r.s.map(x=>'<li>'+x+'</li>').join('')+'</ol>'+(chosenItems(d.id).length?'<h3 class="rh">'+(d.id==='smoerrebroed'?'Smørrebrød':'Tilbehør')+'</h3><ol class="steps">'+chosenItems(d.id).map(it=>'<li><b>'+shortN(it.n)+':</b> '+(it.step||SIDESTEP[it.kind+':'+it.n]||'')+'</li>').join('')+'</ol>':'')+(r.k?'<p class="tip"><b>Børnene kan hjælpe med at</b> '+r.k+'.</p>':'')+(r.src&&/^https?:\/\//.test(r.src)?'<p class="meta"><a href="'+esc(r.src)+'" target="_blank" rel="noopener noreferrer">Se opskriften på den oprindelige side</a></p>':'')+'</div></section>';
     document.body.style.overflow='hidden';return;
   }
   if(!S.sheet){el.innerHTML='';document.body.style.overflow='';return;}
@@ -1285,7 +1288,7 @@ const A={
     const id=el.dataset.dish,items=sideItems(id);
     if(!items.length){toast('Der er ikke noget tilbehør at lægge på listen');return;}
     S.sheet=null;S.rec=null;S.snackSheet=false;S.backup=false;S.addSheet=false;
-    const prev=S.sides[id]||[];S.sideFor=id;S.sideItems=items;S.sideSel=items.map(it=>prev.indexOf(it.n)>=0);renderSheet();
+    const prev=S.sides[id]||[];S.sideFor=id;S.sideItems=items;S.sideSel=items.map(it=>prev.indexOf(it.n)>=0);S.sideCnt=items.map(it=>Math.max(1,Math.min(40,Number(((S.sidesN||{})[id]||{})[it.n])||S.people)));renderSheet();
   },
   sidetoggle(el){
     const i=Number(el.dataset.i),it=S.sideItems[i];
@@ -1293,10 +1296,16 @@ const A={
     else{if(it.kind==='kød')S.sideItems.forEach((o,j)=>{if(o.kind==='kød')S.sideSel[j]=false;});S.sideSel[i]=true;}
     renderSheet();
   },
+  sidecnt(el){
+    const i=Number(el.dataset.i),pn=document.querySelector('#sheet .panel'),top=pn?pn.scrollTop:0,sc=document.querySelector('#sheet .slist'),top2=sc?sc.scrollTop:0;
+    S.sideCnt[i]=Math.max(1,Math.min(40,(S.sideCnt[i]||S.people)+Number(el.dataset.d)));renderSheet();
+    const pn2=document.querySelector('#sheet .panel'),sc2=document.querySelector('#sheet .slist');if(pn2)pn2.scrollTop=top;if(sc2)sc2.scrollTop=top2;
+  },
   sideadd(){
     const id=S.sideFor,add=[];
     S.sideItems.forEach((it,i)=>{if(S.sideSel[i])add.push(it);});
     if(add.length)S.sides[id]=add.map(it=>it.n);else delete S.sides[id];
+    if(id==='smoerrebroed'){S.sidesN=S.sidesN||{};if(add.length){const o={};S.sideItems.forEach((it,i)=>{if(S.sideSel[i])o[it.n]=S.sideCnt[i];});S.sidesN[id]=o;}else delete S.sidesN[id];}
     persist();closeSheet();render();
     toast(add.length?(id==='smoerrebroed'?'Smørrebrødet':'Tilbehøret')+' er gemt og står på indkøbslisten':(id==='smoerrebroed'?'Smørrebrødet':'Tilbehøret')+' er fjernet');
   },
