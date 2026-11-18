@@ -210,7 +210,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='1.7';
+const APP_VERSION='1.8';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -1041,26 +1041,30 @@ function remaLine(i){
 }
 
 /* Anslået pris for en ret ud fra Rema-priserne (forbrugt mængde, ikke hele pakker). */
-function ingCost(q,u,r){
+const STKG={'tørrede abrikoser':8,'abrikoser':8,'dadler':8,'svesker':8,'æg':60,'løg':100,'rødløg':80,'gulerødder':80,'gulerod':80,'kartofler':100,'tomater':100,'cherrytomater':15,'æbler':150,'æble':150,'pærer':150,'citron':100,'lime':70,'rødbeder':150,'chili':10,'avocado':200,'peberfrugt':150,'porre':200,'porrer':200,'squash':300,'agurk':400,'blomkål':600,'broccoli':400,'champignon':20,'bananer':120,'banan':120,'appelsin':200,'forårsløg':20,'ingefær':30,'knoldselleri':700,'søde kartofler':300};
+const HERBS=/^(persille|dild|basilikum|koriander|mynte|timian|purløg|rosmarin|krydderurter|stilke bladselleri|bladselleri)$/;
+function ingCost(q,u,r,name){
   if(!q||!r||r.none)return 0;
-  const v=ingCost0(q,u,r);
+  if(name&&HERBS.test(name)&&(u==='stk'||u==='bundt'))return r.price*Math.min(1,q*(u==='bundt'?1:0.25));
+  const v=ingCost0(q,u,r,name);
   return Math.min(v,r.price*10);
 }
-function ingCost0(q,u,r){
+function ingCost0(q,u,r,name){
+  const pw=(name&&STKG[name])||100;
   const nb=needBase(q,u),cu=r.cu||'',cb=cu==='kg'?['g',1000]:(cu==='ltr'||cu==='l')?['ml',1000]:cu==='stk'?['stk',1]:null,sz=remaSize(r.ul);
   if(nb){
     if(cb&&r.cup){
       if(nb[0]===cb[0])return nb[1]/cb[1]*r.cup;
-      if(nb[0]==='stk'&&cb[0]==='g')return nb[1]*150/1000*r.cup;
+      if(nb[0]==='stk'&&cb[0]==='g')return nb[1]*pw/1000*r.cup;
       if(nb[0]==='ml'&&cb[0]==='g')return nb[1]*0.8/1000*r.cup;
       if(nb[0]==='g'&&cb[0]==='ml')return nb[1]/1000*r.cup;
     }
     if(sz&&sz[1]>0){
       if(nb[0]===sz[0])return nb[1]/sz[1]*r.price;
-      if(nb[0]==='g'&&sz[0]==='stk')return nb[1]/150/sz[1]*r.price;
+      if(nb[0]==='g'&&sz[0]==='stk')return nb[1]/pw/sz[1]*r.price;
       if(nb[0]==='g'&&sz[0]==='ml')return nb[1]/sz[1]*r.price;
       if(nb[0]==='ml'&&sz[0]==='g')return nb[1]*0.8/sz[1]*r.price;
-      if(nb[0]==='stk'&&sz[0]==='g')return nb[1]*150/sz[1]*r.price;
+      if(nb[0]==='stk'&&sz[0]==='g')return nb[1]*pw/sz[1]*r.price;
     }
     if(nb[0]==='stk')return nb[1]*r.price/((cu==='bakke'||cu==='bdt')?4:1);
     if(nb[0]==='g')return nb[1]/500*r.price;
@@ -1071,7 +1075,7 @@ function ingCost0(q,u,r){
 }
 function dishPrice(d){
   const mult=d.y?1:S.people/4;let cost=0,miss=0,n=0;
-  d.ing.forEach(i=>{const r=REMA[i[0]];n++;if(!r||r.none){miss++;return;}cost+=ingCost(i[1]*mult,i[2],r);});
+  d.ing.forEach(i=>{const r=REMA[i[0]];n++;if(!r||r.none){miss++;return;}cost+=ingCost(i[1]*mult,i[2],r,i[0]);});
   if(!n||miss>n/4)return null;
   return {cost,miss};
 }
