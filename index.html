@@ -210,7 +210,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='1.6';
+const APP_VERSION='1.7';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -1002,7 +1002,7 @@ function needBase(q,u){
   const n=Number(q);if(!n)return null;
   return u==='g'?['g',n]:u==='kg'?['g',n*1000]:u==='l'?['ml',n*1000]:u==='dl'?['ml',n*100]:u==='ml'?['ml',n]:u==='spsk'?['ml',n*15]:u==='tsk'?['ml',n*5]:u==='stk'?['stk',n]:null;
 }
-const REMA_ALIAS={'bouillonterning':'bouillon','bouillonterninger':'bouillon','grøntsagsbouillonterning':'grøntsagsbouillon','laksfilet':'laksefilet','sojasovs':'soja','soyasauce':'soja','medisterpølse':'medister','toastbrød':'toastbrød','grønne peberfrugter':'peberfrugt','knoldselleri':'selleri','vindruer':'druer','maizena':'majsstivelse','popcornmajs':'popcorn','jordbærsyltetøj':'jordbær','bær (friske eller frosne)':'bær','tacoskaller':'taco','tacokrydderi':'taco krydderi','cheddarskiver':'cheddar','kalkunbacon':'kalkun bacon','fuldkornslasagneplader':'lasagneplader','fuldkornspizzamel':'pizzamel','fuldkornsbulgur':'bulgur','limesaft':'lime','vaniljeyoghurt':'vanilje yoghurt','skinkestrimler':'skinke','citronskal':'citron','chilipulver':'chili','hvidløgspulver':'hvidløg','tarteletskaller':'tarteletter','mælk':'minimælk','kyllingefars':'hakket kylling','laks':'laksefilet','fløde':'piskefløde','kyllingebryst':'kyllingebrystfilet','kyllingebrystfilet':'kyllingebrystfilet'};
+const REMA_ALIAS={'mel':'hvedemel','appelsin':'appelsiner','kanel':'stødt kanel','olie':'rapsolie','gulerod':'gulerødder','æble':'æbler','hvidtøl':'hvidtøl','bouillonterning':'bouillon','bouillonterninger':'bouillon','grøntsagsbouillonterning':'grøntsagsbouillon','laksfilet':'laksefilet','sojasovs':'soja','soyasauce':'soja','medisterpølse':'medister','toastbrød':'toastbrød','grønne peberfrugter':'peberfrugt','knoldselleri':'selleri','vindruer':'druer','maizena':'majsstivelse','popcornmajs':'popcorn','jordbærsyltetøj':'jordbær','bær (friske eller frosne)':'bær','tacoskaller':'taco','tacokrydderi':'taco krydderi','cheddarskiver':'cheddar','kalkunbacon':'kalkun bacon','fuldkornslasagneplader':'lasagneplader','fuldkornspizzamel':'pizzamel','fuldkornsbulgur':'bulgur','limesaft':'lime','vaniljeyoghurt':'vanilje yoghurt','skinkestrimler':'skinke','citronskal':'citron','chilipulver':'chili','hvidløgspulver':'hvidløg','tarteletskaller':'tarteletter','mælk':'minimælk','kyllingefars':'hakket kylling','laks':'laksefilet','fløde':'piskefløde','kyllingebryst':'kyllingebrystfilet','kyllingebrystfilet':'kyllingebrystfilet'};
 const REMA_BAD=/røget|strimler|kiks|chips|juice|saft|chokolade|pulver|snack|dressing|suppe|sauce|marineret|pålæg|glas|drik|blommer|fyldte|sandwich|baguette|alternativ|strenge|salat|smurt|spread|kondenseret/;
 function remaPick(name,q,list){
   const w=norm(q).split(/\s+/).filter(x=>x.length>1),last=w[w.length-1]||'',stem=last.slice(0,Math.max(Math.min(4,last.length),last.length-2));
@@ -1023,9 +1023,9 @@ async function remaLookup(name){
   const r=await fetch(getWorker()+'/?url='+encodeURIComponent(u));
   if(!r.ok)throw new Error('http '+r.status);
   const j=await r.json(),p=remaPick(name,q,j.data||[]);
-  if(!p){REMA[name]={t:Date.now(),none:true,v:2};return;}
+  if(!p){REMA[name]={t:Date.now(),none:true,v:3};return;}
   const pr=remaPrice(p);
-  REMA[name]={t:Date.now(),n:p.name,ul:p.underline||'',price:pr.price,camp:!!(pr.is_campaign||pr.is_advertised),until:pr.ending_at,cu:String(pr.compare_unit||'').toLowerCase(),cup:Number(pr.compare_unit_price)||0};
+  REMA[name]={t:Date.now(),n:p.name,ul:p.underline||'',price:pr.price,camp:!!(pr.is_campaign||pr.is_advertised),until:pr.ending_at,cu:String(pr.compare_unit||'').toLowerCase(),cup:Number(pr.compare_unit_price)||0,v:3};
 }
 function remaEstimate(i){
   const r=REMA[i.n];if(!r||r.none)return null;
@@ -1043,16 +1043,30 @@ function remaLine(i){
 /* Anslået pris for en ret ud fra Rema-priserne (forbrugt mængde, ikke hele pakker). */
 function ingCost(q,u,r){
   if(!q||!r||r.none)return 0;
-  const nb=needBase(q,u),cu=r.cu||'',cb=cu==='kg'?['g',1000]:(cu==='ltr'||cu==='l')?['ml',1000]:cu==='stk'?['stk',1]:null;
-  if(nb&&cb&&r.cup){
-    if(nb[0]===cb[0])return nb[1]/cb[1]*r.cup;
-    if(nb[0]==='stk'&&cb[0]==='g')return nb[1]*150/1000*r.cup;
-    if(nb[0]==='ml'&&cb[0]==='g')return nb[1]*0.8/1000*r.cup;
-    if(nb[0]==='g'&&cb[0]==='ml')return nb[1]/1000*r.cup;
+  const v=ingCost0(q,u,r);
+  return Math.min(v,r.price*10);
+}
+function ingCost0(q,u,r){
+  const nb=needBase(q,u),cu=r.cu||'',cb=cu==='kg'?['g',1000]:(cu==='ltr'||cu==='l')?['ml',1000]:cu==='stk'?['stk',1]:null,sz=remaSize(r.ul);
+  if(nb){
+    if(cb&&r.cup){
+      if(nb[0]===cb[0])return nb[1]/cb[1]*r.cup;
+      if(nb[0]==='stk'&&cb[0]==='g')return nb[1]*150/1000*r.cup;
+      if(nb[0]==='ml'&&cb[0]==='g')return nb[1]*0.8/1000*r.cup;
+      if(nb[0]==='g'&&cb[0]==='ml')return nb[1]/1000*r.cup;
+    }
+    if(sz&&sz[1]>0){
+      if(nb[0]===sz[0])return nb[1]/sz[1]*r.price;
+      if(nb[0]==='g'&&sz[0]==='stk')return nb[1]/150/sz[1]*r.price;
+      if(nb[0]==='g'&&sz[0]==='ml')return nb[1]/sz[1]*r.price;
+      if(nb[0]==='ml'&&sz[0]==='g')return nb[1]*0.8/sz[1]*r.price;
+      if(nb[0]==='stk'&&sz[0]==='g')return nb[1]*150/sz[1]*r.price;
+    }
+    if(nb[0]==='stk')return nb[1]*r.price/((cu==='bakke'||cu==='bdt')?4:1);
+    if(nb[0]==='g')return nb[1]/500*r.price;
+    return nb[1]/1000*r.price;
   }
-  const sz=remaSize(r.ul);
-  if(nb&&sz&&nb[0]===sz[0]&&sz[1]>0)return nb[1]/sz[1]*r.price;
-  const f={fed:0.1,skive:0.1,'håndfuld':0.25,knivspids:0,tsk:0.03,spsk:0.08}[u];
+  const f={fed:0.1,skive:0.1,'håndfuld':0.25,knivspids:0}[u];
   return (f===undefined?1:f)*q*r.price;
 }
 function dishPrice(d){
@@ -1066,7 +1080,7 @@ async function remaCatalog(){
   if(remaCatBusy)return;
   const now=Date.now(),seen=new Set();
   DISHES.concat(SNACKS).forEach(d=>d.ing.forEach(i=>seen.add(i[0])));
-  const names=[...seen].filter(n=>{const r=REMA[n];return !r||now-r.t>3*864e5||(!r.none&&r.cu===undefined)||(r.none&&r.v!==2);});
+  const names=[...seen].filter(n=>{const r=REMA[n];return !r||now-r.t>3*864e5||(!r.none&&r.cu===undefined)||r.v!==3;});
   if(!names.length)return;
   remaCatBusy=true;let idx=0,done=0;
   const work=async()=>{while(idx<names.length){const n=names[idx++];try{await remaLookup(n);}catch(e){}done++;if(done%15===0){remaSave();if(!S.sheet&&!S.rec&&!S.addSheet)render();}}};
