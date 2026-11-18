@@ -210,7 +210,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='1.4';
+const APP_VERSION='1.5';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -891,7 +891,7 @@ function facts(d){
   const h=HEALTH[d.id]||2,lab=['','Hyggemad','Okay','Sund'][h];
   let lv='';
   for(let i=1;i<=3;i++)lv+='<svg class="ic'+(i<=h?' on':'')+'" viewBox="0 0 24 24" aria-hidden="true">'+LEAF+'</svg>';
-  return '<span class="facts"><span class="fact"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>ca. '+d.m+' min</span><span class="hl h'+h+'">'+lv+lab+'</span></span>';
+  return '<span class="facts"><span class="fact"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>ca. '+d.m+' min</span>'+(()=>{const pr=dishPrice(d);return pr?'<span class="fact" title="Anslået pris i Rema 1000'+(d.y?'':' for '+S.people+' personer')+', uden tilbehør">ca. '+Math.max(1,Math.round(pr.cost))+' kr'+(pr.miss?'+':'')+'</span>':'';})()+'<span class="hl h'+h+'">'+lv+lab+'</span></span>';
 }
 const tile=(d,sm)=>'<span class="tile t'+(d.i%5)+(sm?' sm':'')+'" aria-hidden="true">'+(d.jm?'<img src="jmh-logo.jpg" alt="" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;display:block">':d.e)+'</span>';
 function stars(id,mine){
@@ -1025,7 +1025,7 @@ async function remaLookup(name){
   const j=await r.json(),p=remaPick(name,q,j.data||[]);
   if(!p){REMA[name]={t:Date.now(),none:true};return;}
   const pr=remaPrice(p);
-  REMA[name]={t:Date.now(),n:p.name,ul:p.underline||'',price:pr.price,camp:!!(pr.is_campaign||pr.is_advertised),until:pr.ending_at};
+  REMA[name]={t:Date.now(),n:p.name,ul:p.underline||'',price:pr.price,camp:!!(pr.is_campaign||pr.is_advertised),until:pr.ending_at,cu:String(pr.compare_unit||'').toLowerCase(),cup:Number(pr.compare_unit_price)||0};
 }
 function remaEstimate(i){
   const r=REMA[i.n];if(!r||r.none)return null;
@@ -1038,6 +1038,41 @@ function remaLine(i){
   if(r.none)return '<span class="rema none">Rema: ikke fundet</span>';
   const e=remaEstimate(i);
   return '<span class="rema">Rema: '+esc(cap(r.n.toLowerCase()))+' '+esc(r.ul.split('/')[0].trim().toLowerCase())+' · '+kr(r.price)+(e.packs>1?' × '+e.packs+' = '+kr(e.cost):'')+(r.camp?'<b class="tb">Tilbud</b>':'')+'</span>';
+}
+
+/* Anslået pris for en ret ud fra Rema-priserne (forbrugt mængde, ikke hele pakker). */
+function ingCost(q,u,r){
+  if(!q||!r||r.none)return 0;
+  const nb=needBase(q,u),cu=r.cu||'',cb=cu==='kg'?['g',1000]:(cu==='ltr'||cu==='l')?['ml',1000]:cu==='stk'?['stk',1]:null;
+  if(nb&&cb&&r.cup){
+    if(nb[0]===cb[0])return nb[1]/cb[1]*r.cup;
+    if(nb[0]==='stk'&&cb[0]==='g')return nb[1]*150/1000*r.cup;
+    if(nb[0]==='ml'&&cb[0]==='g')return nb[1]*0.8/1000*r.cup;
+    if(nb[0]==='g'&&cb[0]==='ml')return nb[1]/1000*r.cup;
+  }
+  const sz=remaSize(r.ul);
+  if(nb&&sz&&nb[0]===sz[0]&&sz[1]>0)return nb[1]/sz[1]*r.price;
+  const f={fed:0.1,skive:0.1,'håndfuld':0.25,knivspids:0,tsk:0.03,spsk:0.08}[u];
+  return (f===undefined?1:f)*q*r.price;
+}
+function dishPrice(d){
+  const mult=d.y?1:S.people/4;let cost=0,miss=0,n=0;
+  d.ing.forEach(i=>{const r=REMA[i[0]];n++;if(!r||r.none){miss++;return;}cost+=ingCost(i[1]*mult,i[2],r);});
+  if(!n||miss>n/4)return null;
+  return {cost,miss};
+}
+let remaCatBusy=false;
+async function remaCatalog(){
+  if(remaCatBusy)return;
+  const now=Date.now(),seen=new Set();
+  DISHES.concat(SNACKS).forEach(d=>d.ing.forEach(i=>seen.add(i[0])));
+  const names=[...seen].filter(n=>{const r=REMA[n];return !r||now-r.t>3*864e5||(!r.none&&r.cu===undefined);});
+  if(!names.length)return;
+  remaCatBusy=true;let idx=0,done=0;
+  const work=async()=>{while(idx<names.length){const n=names[idx++];try{await remaLookup(n);}catch(e){}done++;if(done%15===0){remaSave();if(!S.sheet&&!S.rec&&!S.addSheet)render();}}};
+  await Promise.all([work(),work(),work()]);
+  remaCatBusy=false;remaSave();
+  const ae=document.activeElement;if(!(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))){render();if(S.sheet||S.rec)renderSheet();}
 }
 function viewShopPlan(){
   const wk=dk(S.week),nav=weekNavHtml();
@@ -1566,6 +1601,7 @@ function subscribe(){
 function init(){
   load();
   render();
+  setTimeout(()=>{remaCatalog().catch(()=>{});},2500);
 }
 init();
 })();
