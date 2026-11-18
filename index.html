@@ -210,7 +210,7 @@ h1,h2,h3,p{margin:0}
 <script>
 (function(){
 'use strict';
-const APP_VERSION='2.0';
+const APP_VERSION='2.1';
 const versionTxt=()=>{const m=/^(\d{4})-(\d\d)-(\d\d)-(\d\d)(\d\d)$/.exec(APP_VERSION);return m?'Version '+Number(m[3])+'.'+Number(m[2])+'.'+m[1]+' kl. '+m[4]+'.'+m[5]:'Version '+APP_VERSION;};
 const LOGKEY='spisetid-log';
 function logErr(m){try{const a=JSON.parse(localStorage.getItem(LOGKEY)||'[]');a.push({t:new Date().toISOString(),m:String(m).slice(0,300)});localStorage.setItem(LOGKEY,JSON.stringify(a.slice(-10)));}catch(e){}}
@@ -1079,12 +1079,26 @@ function dishPrice(d){
   if(!n||miss>n/4)return null;
   return {cost,miss};
 }
+
+const remaTried=new Set();
+async function remaShopAuto(){
+  if(S.tab!=='shop'||S.remaBusy)return;
+  const wk=dk(S.week),now=Date.now(),list=shopList(wk).concat(customFor(wk).map(c=>({n:c.t,key:'x-'+c.id})));
+  const names=[...new Set(list.map(i=>i.n))].filter(n=>{const r=REMA[n];return (!r||now-r.t>864e5)&&!remaTried.has(n);});
+  if(!names.length)return;
+  names.forEach(n=>remaTried.add(n));
+  let done=0,idx=0;S.remaBusy='0/'+names.length;{const ae=document.activeElement;if(!(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render();}
+  const work=async()=>{while(idx<names.length){const n=names[idx++];try{await remaLookup(n);}catch(e){}done++;S.remaBusy=done+'/'+names.length;}};
+  await Promise.all([work(),work(),work()]);
+  S.remaBusy=null;remaSave();
+  const ae=document.activeElement;if(!(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName)))render();
+}
 let remaCatBusy=false;
 async function remaCatalog(){
   if(remaCatBusy)return;
   const now=Date.now(),seen=new Set();
   DISHES.concat(SNACKS).forEach(d=>d.ing.forEach(i=>seen.add(i[0])));
-  const names=[...seen].filter(n=>{const r=REMA[n];return !r||now-r.t>3*864e5||(!r.none&&r.cu===undefined)||r.v!==3;});
+  const names=[...seen].filter(n=>{const r=REMA[n];return !r||now-r.t>864e5||(!r.none&&r.cu===undefined)||r.v!==3;});
   if(!names.length)return;
   remaCatBusy=true;let idx=0,done=0;
   const work=async()=>{while(idx<names.length){const n=names[idx++];try{await remaLookup(n);}catch(e){}done++;if(done%15===0){remaSave();if(!S.sheet&&!S.rec&&!S.addSheet)render();}}};
@@ -1101,7 +1115,8 @@ function viewShopPlan(){
   const sum=!items.length?'':'<div class="sumbar">'+items.length+' varer til '+[n?n+(n===1?' ret':' retter'):'',ns?ns+(ns===1?' snack':' snacks'):''].filter(Boolean).join(' og ')+'<span>'+(multi?multi+(multi===1?' vare bruges':' varer bruges')+' i flere retter, så I køber ind til to på én gang.':'Vælg flere retter med de samme varer for at spare på indkøbet.')+' Mængderne passer til '+S.people+' personer.</span></div>';
   let h='';
   const open=items.concat(cust).filter(i=>!S.shop[i.key]),est=open.map(remaEstimate),found=est.filter(Boolean),tot=found.reduce((a,b)=>a+b.cost,0),have=open.filter(i=>REMA[i.n]).length;
-  const remaBox='<div class="sumbar">'+(S.remaBusy?'Henter priser fra Rema 1000 … '+S.remaBusy:have?'Anslået pris i Rema 1000: ca. '+kr(tot)+'<span>For '+found.length+' af '+open.length+' varer, der mangler at blive købt. Priserne er fra Remas webshop og kan afvige i din butik. Pakkerne er regnet op, så I har nok.</span>':'Se hvad varerne koster i Rema 1000<span>Priserne hentes fra Remas webshop, og tilbud bliver markeret.</span>')+'<div class="row" style="margin-top:8px"><button class="btn" data-a="remafetch"'+(S.remaBusy?' disabled':'')+'>'+(have?'Opdater Rema-priser':'Hent Rema-priser')+'</button></div></div>';
+  const remaBox=S.remaBusy?'<div class="sumbar">Henter priser fra Rema 1000 … '+S.remaBusy+'</div>':have?'<div class="sumbar">Anslået pris i Rema 1000: ca. '+kr(tot)+'<span>For '+found.length+' af '+open.length+' varer, der mangler at blive købt. Priserne er fra Remas webshop, hentes automatisk hver dag og kan afvige i din butik. Pakkerne er regnet op, så I har nok.</span></div>':'';
+  setTimeout(remaShopAuto,0);
   const btns=remaBox+'<div class="row"><button class="btn ghost" data-a="copy">Kopiér listen</button><button class="btn ghost" data-a="shopreset">Fjern alle flueben</button></div>';
   const openGroups=[],doneGroups=[];
   CATORDER.forEach(c=>{
